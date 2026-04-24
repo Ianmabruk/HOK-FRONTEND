@@ -1,15 +1,27 @@
 import { Link } from 'react-router-dom'
-import { FiShoppingBag } from 'react-icons/fi'
+import { FiShoppingBag, FiHeart } from 'react-icons/fi'
+import { FaHeart } from 'react-icons/fa'
 import { useCartStore } from '../../store/cartStore'
+import { useWishlistStore } from '../../store/wishlistStore'
 import toast from 'react-hot-toast'
 
 export default function ProductCard({ product }) {
   const addItem = useCartStore((s) => s.addItem)
+  const { toggle, has } = useWishlistStore()
+  const wishlisted = has(product.id)
 
   const handleAdd = (e) => {
     e.preventDefault()
     addItem(product)
     toast.success(`${product.title} added to cart`)
+  }
+
+  const handleWishlist = (e) => {
+    e.preventDefault()
+    toggle(product.id)
+    toast(wishlisted ? 'Removed from wishlist' : 'Saved to wishlist', {
+      icon: wishlisted ? '🤍' : '❤️',
+    })
   }
 
   return (
@@ -28,6 +40,16 @@ export default function ProductCard({ product }) {
         {product.stock > 0 && product.stock <= 5 && (
           <span className="absolute top-2 left-2 bg-terracotta text-white text-xs px-2 py-1 rounded">Only {product.stock} left</span>
         )}
+        {/* Wishlist button */}
+        <button
+          onClick={handleWishlist}
+          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:scale-110"
+          aria-label={wishlisted ? 'Remove from wishlist' : 'Save to wishlist'}
+        >
+          {wishlisted
+            ? <FaHeart size={14} className="text-terracotta" />
+            : <FiHeart size={14} className="text-charcoal dark:text-gray-200" />}
+        </button>
         <button
           onClick={handleAdd}
           disabled={product.stock === 0}
@@ -45,3 +67,4 @@ export default function ProductCard({ product }) {
     </Link>
   )
 }
+

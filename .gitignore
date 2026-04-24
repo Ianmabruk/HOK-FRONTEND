@@ -22,3 +22,22 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# ── Secrets — NEVER commit real env files ────────────────────────────────────
+.env
+.env.local
+.env.production
+backend/.env
+
+# ── Python ───────────────────────────────────────────────────────────────────
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# ── Database ─────────────────────────────────────────────────────────────────
+*.db
+*.sqlite
+backend/instance/

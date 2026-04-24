@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { FiFilter, FiX, FiChevronDown } from 'react-icons/fi'
+import { FiFilter, FiX, FiChevronDown, FiSearch } from 'react-icons/fi'
 import { productsApi } from '../services/api'
 import ProductCard from '../components/ui/ProductCard'
 
@@ -29,6 +29,8 @@ export default function Products() {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [localSearch, setLocalSearch] = useState('')
+  const debounceRef = useRef(null)
 
   const category = searchParams.get('category') || ''
   const search = searchParams.get('search') || ''
@@ -36,6 +38,9 @@ export default function Products() {
   const page = parseInt(searchParams.get('page') || '1', 10)
   const minPrice = searchParams.get('min') || ''
   const maxPrice = searchParams.get('max') || ''
+
+  // Keep local search input in sync with URL param
+  useEffect(() => { setLocalSearch(search) }, [search])
 
   const setParam = useCallback((key, val) => {
     setSearchParams((prev) => {
@@ -46,6 +51,14 @@ export default function Products() {
     })
   }, [setSearchParams])
 
+  const handleSearchInput = (val) => {
+    setLocalSearch(val)
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      setParam('search', val.trim())
+    }, 400)
+  }
+
   useEffect(() => {
     setLoading(true)
     productsApi.getAll({
@@ -54,8 +67,8 @@ export default function Products() {
       sort,
       page,
       limit: PER_PAGE,
-      min_price: minPrice || undefined,
-      max_price: maxPrice || undefined,
+      price_min: minPrice || undefined,
+      price_max: maxPrice || undefined,
     }).then((r) => {
       setProducts(r.data.products || [])
       setTotal(r.data.total || 0)
@@ -133,10 +146,30 @@ export default function Products() {
       {/* Page header */}
       <div className="bg-cream dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-          <h1 className="section-title text-2xl sm:text-4xl">
-            {search ? `Results for "${search}"` : category ? category.replace('-', ' ') : 'All Products'}
+          <h1 className="section-title text-2xl sm:text-4xl capitalize">
+            {search ? `Results for "${search}"` : category ? category.replace(/-/g, ' ') : 'All Products'}
           </h1>
           <p className="text-sm text-gray-400 mt-2">{total} {total === 1 ? 'item' : 'items'}</p>
+          {/* Prominent search bar */}
+          <div className="mt-6 relative max-w-lg">
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input
+              type="text"
+              value={localSearch}
+              onChange={(e) => handleSearchInput(e.target.value)}
+              placeholder="Search products, styles, rooms..."
+              className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-charcoal dark:text-gray-200 pl-9 pr-10 py-2.5 rounded-sm focus:outline-none focus:border-charcoal dark:focus:border-gray-400 placeholder-gray-400"
+            />
+            {localSearch && (
+              <button
+                onClick={() => handleSearchInput('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-charcoal"
+                aria-label="Clear search"
+              >
+                <FiX size={15} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

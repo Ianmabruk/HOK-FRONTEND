@@ -10,6 +10,10 @@ const Cart = lazy(() => import('./pages/Cart'))
 const Login = lazy(() => import('./pages/Login'))
 const Register = lazy(() => import('./pages/Register'))
 const Checkout = lazy(() => import('./pages/Checkout'))
+const Wishlist = lazy(() => import('./pages/Wishlist'))
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'))
 const AdminLayout = lazy(() => import('./admin/AdminLayout'))
 const Dashboard = lazy(() => import('./admin/Dashboard'))
 const AdminProducts = lazy(() => import('./admin/Products'))
@@ -17,6 +21,7 @@ const AdminOrders = lazy(() => import('./admin/Orders'))
 const AdminUsers = lazy(() => import('./admin/Users'))
 const AdminChats = lazy(() => import('./admin/Chats'))
 const AdminVendors = lazy(() => import('./admin/Vendors'))
+const NotFound = lazy(() => import('./pages/NotFound'))
 
 function PageLoader() {
   return (
@@ -42,9 +47,14 @@ export default function App() {
           <Route path="products" element={<Products />} />
           <Route path="products/:id" element={<ProductDetail />} />
           <Route path="cart" element={<Cart />} />
+          <Route path="wishlist" element={<Wishlist />} />
           <Route path="checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
+          <Route path="verify-email" element={<VerifyEmail />} />
+          <Route path="forgot-password" element={<ForgotPassword />} />
+          <Route path="reset-password" element={<ResetPassword />} />
+          <Route path="*" element={<NotFound />} />
         </Route>
         <Route path="/admin" element={<ProtectedRoute adminOnly><AdminLayout /></ProtectedRoute>}>
           <Route index element={<Dashboard />} />

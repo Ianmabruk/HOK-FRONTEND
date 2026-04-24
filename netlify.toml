@@ -1,0 +1,22 @@
+[build]
+  command   = "npm run build"
+  publish   = "dist"
+
+# ── API proxy ─────────────────────────────────────────────────────────────────
+# Set VITE_API_URL = https://your-backend.example.com  in Netlify → Site
+# configuration → Environment variables so the frontend hits the right server.
+#
+# If you want Netlify to proxy /api/* to your backend, uncomment the block
+# below and replace the `to` URL with your deployed backend origin:
+#
+# [[redirects]]
+#   from   = "/api/*"
+#   to     = "https://your-backend.example.com/api/:splat"
+#   status = 200
+#   force  = true
+
+# ── SPA fallback (must be LAST) ───────────────────────────────────────────────
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

@@ -2,7 +2,7 @@ import axios from 'axios'
 import { useAuthStore } from '../store/authStore'
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
 })
 
 api.interceptors.request.use((config) => {
@@ -24,6 +24,10 @@ api.interceptors.response.use(
 export const authApi = {
   register: (data) => api.post('/register', data),
   login: (data) => api.post('/login', data),
+  verifyEmail: (token) => api.get(`/verify-email?token=${encodeURIComponent(token)}`),
+  resendVerification: () => api.post('/resend-verification'),
+  forgotPassword: (email) => api.post('/forgot-password', { email }),
+  resetPassword: (token, password) => api.post('/reset-password', { token, password }),
 }
 
 export const productsApi = {

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { FiMail, FiCheckCircle } from 'react-icons/fi'
 import { authApi } from '../services/api'
 import { useAuthStore } from '../store/authStore'
 import toast from 'react-hot-toast'
@@ -7,6 +8,8 @@ import toast from 'react-hot-toast'
 export default function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' })
   const [loading, setLoading] = useState(false)
+  const [registered, setRegistered] = useState(false)
+  const [registeredName, setRegisteredName] = useState('')
   const setAuth = useAuthStore((s) => s.setAuth)
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -15,22 +18,63 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (form.password !== form.confirm) return toast.error('Passwords do not match')
+    if (form.password.length < 8) return toast.error('Password must be at least 8 characters')
+    if (!/\d/.test(form.password)) return toast.error('Password must contain at least one number')
     setLoading(true)
     try {
       const { data } = await authApi.register({ name: form.name, email: form.email, password: form.password })
       setAuth(data.user, data.token)
-      toast.success('Account created!')
+      setRegisteredName(data.user.name)
+      setRegistered(true)
+      // Admins skip the "check your email" screen and go straight to dashboard
       if (data.user.role === 'admin') {
+        toast.success('Account created!')
         navigate('/admin')
-      } else {
-        navigate(isAdminFlow ? '/' : '/')
-        if (isAdminFlow) toast('Your account has been created. An admin will grant you access.', { icon: 'ℹ️' })
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Registration failed')
     } finally {
       setLoading(false)
     }
+  }
+
+  // ── Post-registration: show "check your email" card ──────────────────────
+  if (registered) {
+    return (
+      <div className="bg-warm-white dark:bg-gray-950 min-h-screen flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md text-center">
+          <Link to="/" className="font-serif text-xl text-charcoal dark:text-gray-100 block mb-8">
+            HOK <span className="text-terracotta">Interior Designs</span>
+          </Link>
+          <div className="bg-white dark:bg-gray-900 rounded shadow-sm border border-gray-100 dark:border-gray-800 p-8">
+            <FiCheckCircle className="mx-auto text-terracotta mb-4" size={44} />
+            <h1 className="font-serif text-2xl text-charcoal dark:text-gray-100 mb-3">
+              Welcome, {registeredName}!
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
+              Your account has been created. We've sent a verification link to{' '}
+              <strong className="text-charcoal dark:text-gray-200">{form.email}</strong>.
+              <br />Please check your inbox (and spam folder) to activate your account.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  authApi.resendVerification().then(() =>
+                    toast.success('Verification email resent!')
+                  ).catch(() => toast.error('Could not resend — try again shortly'))
+                }}
+                className="btn-outline w-full flex items-center justify-center gap-2"
+              >
+                <FiMail size={15} /> Resend verification email
+              </button>
+              <Link to="/" className="btn-primary w-full flex items-center justify-center">
+                Continue browsing
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -55,9 +99,9 @@ export default function Register() {
             {[
               { label: 'Full Name', field: 'name', type: 'text' },
               { label: 'Email', field: 'email', type: 'email' },
-              { label: 'Password', field: 'password', type: 'password' },
+              { label: 'Password', field: 'password', type: 'password', hint: 'Min 8 characters, at least 1 number' },
               { label: 'Confirm Password', field: 'confirm', type: 'password' },
-            ].map(({ label, field, type }) => (
+            ].map(({ label, field, type, hint }) => (
               <div key={field}>
                 <label className="label">{label}</label>
                 <input
@@ -67,6 +111,7 @@ export default function Register() {
                   onChange={(e) => setForm({ ...form, [field]: e.target.value })}
                   className="input w-full"
                 />
+                {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
               </div>
             ))}
             <button type="submit" disabled={loading} className="btn-primary w-full disabled:opacity-50">
@@ -82,3 +127,4 @@ export default function Register() {
     </div>
   )
 }
+

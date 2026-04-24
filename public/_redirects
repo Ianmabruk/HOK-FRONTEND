@@ -1,1 +1,4 @@
+# SPA redirect is handled in netlify.toml
+# Keeping this file as a fallback for hosting platforms that read _redirects
+/api/* /api/:splat 404
 /* /index.html 200

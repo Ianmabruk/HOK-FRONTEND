@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { FiShoppingBag, FiMenu, FiX, FiSearch, FiUser } from 'react-icons/fi'
+import { FiShoppingBag, FiMenu, FiX, FiSearch, FiUser, FiHeart } from 'react-icons/fi'
 import { useCartStore } from '../../store/cartStore'
 import { useAuthStore } from '../../store/authStore'
+import { useWishlistStore } from '../../store/wishlistStore'
 
 const NAV_LINKS = [
   { label: 'Shop All', to: '/products' },
@@ -19,6 +20,7 @@ export default function Navbar() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const count = useCartStore((s) => s.count())
+  const wishlistCount = useWishlistStore((s) => s.count())
   const { user, logout } = useAuthStore()
 
   // Close menu on route change
@@ -112,7 +114,16 @@ export default function Navbar() {
                 )}
               </Link>
 
-              {/* Hamburger */}
+              {/* Wishlist */}
+              <Link to="/wishlist" className="relative hidden sm:flex items-center justify-center w-9 h-9">
+                <FiHeart className="text-charcoal dark:text-gray-300 text-xl" />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-terracotta text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-medium">
+                    {wishlistCount > 9 ? '9+' : wishlistCount}
+                  </span>
+                )}
+              </Link>
+
               <button
                 className="lg:hidden flex items-center justify-center w-9 h-9 text-charcoal dark:text-gray-300"
                 onClick={() => setOpen(!open)}
@@ -152,6 +163,12 @@ export default function Navbar() {
                 {l.label}
               </Link>
             ))}
+            <Link
+              to="/wishlist"
+              className="flex items-center h-11 text-sm uppercase tracking-widest text-light-charcoal dark:text-gray-400 hover:text-terracotta dark:hover:text-terracotta transition-colors"
+            >
+              Wishlist {wishlistCount > 0 && <span className="ml-1.5 bg-terracotta text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">{wishlistCount}</span>}
+            </Link>
 
             <div className="border-t border-gray-100 dark:border-gray-800 pt-4 mt-2 space-y-1">
               {user ? (

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { FiAlertCircle } from 'react-icons/fi'
 import { authApi } from '../services/api'
 import { useAuthStore } from '../store/authStore'
 import toast from 'react-hot-toast'
@@ -7,6 +8,8 @@ import toast from 'react-hot-toast'
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' })
   const [loading, setLoading] = useState(false)
+  const [unverified, setUnverified] = useState(false)
+  const [resending, setResending] = useState(false)
   const setAuth = useAuthStore((s) => s.setAuth)
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -15,15 +18,34 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
+    setUnverified(false)
     try {
       const { data } = await authApi.login(form)
       setAuth(data.user, data.token)
-      toast.success('Welcome back!')
+      // Warn (but don't block) if email not yet verified
+      if (!data.user.email_verified) {
+        setUnverified(true)
+        toast('Please verify your email to unlock all features.', { icon: '📧' })
+      } else {
+        toast.success('Welcome back!')
+      }
       navigate(data.user.role === 'admin' ? '/admin' : '/')
     } catch (err) {
       toast.error(err.response?.data?.message || 'Invalid credentials')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleResend = async () => {
+    setResending(true)
+    try {
+      await authApi.resendVerification()
+      toast.success('Verification email resent! Check your inbox.')
+    } catch {
+      toast.error('Could not resend — please sign in first.')
+    } finally {
+      setResending(false)
     }
   }
 
@@ -37,6 +59,21 @@ export default function Login() {
           <div className="mb-6 p-4 bg-cream dark:bg-gray-800 border-l-4 border-terracotta text-sm text-charcoal dark:text-gray-200">
             <strong>Admin Access.</strong> Sign in to your admin account, or{' '}
             <Link to="/register?admin=1" className="underline hover:text-terracotta">create one</Link>.
+          </div>
+        )}
+        {unverified && (
+          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-400 flex items-start gap-3 text-sm">
+            <FiAlertCircle className="text-amber-500 shrink-0 mt-0.5" size={16} />
+            <div>
+              <p className="text-amber-800 dark:text-amber-300 font-medium">Email not verified</p>
+              <p className="text-amber-700 dark:text-amber-400 mt-0.5">
+                Check your inbox for a verification link.{' '}
+                <button onClick={handleResend} disabled={resending}
+                  className="underline hover:no-underline disabled:opacity-60">
+                  {resending ? 'Sending…' : 'Resend email'}
+                </button>
+              </p>
+            </div>
           </div>
         )}
         <div className="bg-white dark:bg-gray-900 rounded shadow-sm border border-gray-100 dark:border-gray-800 p-8">
@@ -56,7 +93,12 @@ export default function Login() {
               />
             </div>
             <div>
-              <label className="label">Password</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="label !mb-0">Password</label>
+                <Link to="/forgot-password" className="text-xs text-gray-400 hover:text-terracotta transition-colors">
+                  Forgot password?
+                </Link>
+              </div>
               <input
                 type="password"
                 required
@@ -78,3 +120,4 @@ export default function Login() {
     </div>
   )
 }
+
