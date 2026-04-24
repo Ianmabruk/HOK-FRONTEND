@@ -83,14 +83,6 @@ export default function Navbar() {
 
               {user ? (
                 <div className="hidden md:flex items-center gap-3">
-                  {user.role === 'admin' && (
-                    <Link
-                      to="/admin"
-                      className="text-xs uppercase tracking-widest text-sage hover:text-dark-sage dark:text-green-400 dark:hover:text-green-300"
-                    >
-                      Admin
-                    </Link>
-                  )}
                   <button
                     onClick={logout}
                     className="text-xs uppercase tracking-widest text-light-charcoal dark:text-gray-400 hover:text-terracotta"
@@ -174,9 +166,6 @@ export default function Navbar() {
               {user ? (
                 <>
                   <p className="text-xs text-gray-400 mb-2">Signed in as <span className="text-charcoal dark:text-gray-200">{user.name}</span></p>
-                  {user.role === 'admin' && (
-                    <Link to="/admin" className="flex items-center h-11 text-sm uppercase tracking-widest text-sage">Admin Dashboard</Link>
-                  )}
                   <button onClick={logout} className="flex items-center h-11 text-sm uppercase tracking-widest text-light-charcoal dark:text-gray-400 hover:text-terracotta w-full text-left">
                     Logout
                   </button>

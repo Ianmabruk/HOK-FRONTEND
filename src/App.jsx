@@ -33,7 +33,7 @@ function PageLoader() {
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user } = useAuthStore()
-  if (!user) return <Navigate to={adminOnly ? '/register?admin=1' : '/login'} />
+  if (!user) return <Navigate to={adminOnly ? '/login?admin=1' : '/login'} />
   if (adminOnly && user.role !== 'admin') return <Navigate to="/?unauthorized=1" />
   return children
 }
