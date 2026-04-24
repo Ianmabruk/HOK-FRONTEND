@@ -2,12 +2,16 @@ import axios from 'axios'
 import { useAuthStore } from '../store/authStore'
 
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim()
+const isGithubRepoUrl = configuredApiUrl
+  ? /^https?:\/\/(www\.)?github\.com\//i.test(configuredApiUrl)
+  : false
 const isLocalApiUrl = configuredApiUrl
   ? /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(configuredApiUrl)
   : false
+const isInvalidProductionApiUrl = isGithubRepoUrl || isLocalApiUrl
 const apiBaseURL = import.meta.env.DEV
   ? '/api'
-  : ((configuredApiUrl && !isLocalApiUrl) ? configuredApiUrl : '/api')
+  : ((configuredApiUrl && !isInvalidProductionApiUrl) ? configuredApiUrl : '/api')
 
 const api = axios.create({
   baseURL: apiBaseURL,
@@ -30,6 +34,11 @@ api.interceptors.response.use(
 
     if (err.response.status === 401) {
       useAuthStore.getState().logout()
+    }
+
+    if (!import.meta.env.DEV && isGithubRepoUrl) {
+      err.userMessage = 'VITE_API_URL is pointing to a GitHub repository, not a deployed backend API. Use your live backend URL ending in /api.'
+      return Promise.reject(err)
     }
 
     if (err.response.status === 404 && apiBaseURL === '/api' && !import.meta.env.DEV) {
