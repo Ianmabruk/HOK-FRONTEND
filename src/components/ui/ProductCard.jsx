@@ -5,6 +5,8 @@ import { useCartStore } from '../../store/cartStore'
 import { useWishlistStore } from '../../store/wishlistStore'
 import toast from 'react-hot-toast'
 
+const fallbackImageFor = (title) => `https://placehold.co/600x600/f5f0e8/2c2c2c?text=${encodeURIComponent(title)}`
+
 export default function ProductCard({ product }) {
   const addItem = useCartStore((s) => s.addItem)
   const { toggle, has } = useWishlistStore()
@@ -28,11 +30,12 @@ export default function ProductCard({ product }) {
     <Link to={`/products/${product.id}`} className="group block">
       <div className="relative overflow-hidden bg-gray-100 dark:bg-gray-800 aspect-square rounded">
         <img
-          src={product.image_url || `https://placehold.co/600x600/f5f0e8/2c2c2c?text=${encodeURIComponent(product.title)}`}
+          src={product.image_url || fallbackImageFor(product.title)}
           alt={product.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           loading="lazy"
           decoding="async"
+          onError={(e) => { e.currentTarget.src = fallbackImageFor(product.title) }}
         />
         {product.stock === 0 && (
           <span className="absolute top-2 left-2 bg-gray-700 text-white text-xs px-2 py-1 rounded">Sold Out</span>

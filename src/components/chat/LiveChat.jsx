@@ -22,7 +22,7 @@ export default function LiveChat() {
     const match = location.pathname.match(/^\/products\/(\d+)$/)
     if (match) {
       const pid = match[1]
-      productsApi.getOne(pid).then((r) => setProduct(r.data)).catch(() => setProduct(null))
+      productsApi.getById(pid).then((r) => setProduct(r.data)).catch(() => setProduct(null))
     } else {
       setProduct(null)
     }

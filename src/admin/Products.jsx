@@ -6,6 +6,21 @@ import toast from 'react-hot-toast'
 
 const EMPTY = { title: '', description: '', price: '', stock: '', category: '', image_url: '', video_url: '', vendor_id: '' }
 const CATEGORIES = ['living-room', 'bedroom', 'kitchen', 'office', 'outdoor', 'dining']
+const FALLBACK_IMAGE = 'https://placehold.co/80x80/f5f0e8/2c2c2c?text=P'
+
+function normalizeProductForm(form) {
+  return {
+    ...form,
+    title: form.title.trim(),
+    description: form.description.trim(),
+    category: form.category.trim(),
+    image_url: form.image_url.trim(),
+    video_url: form.video_url.trim(),
+    price: Number(form.price),
+    stock: Number(form.stock),
+    vendor_id: form.vendor_id ? Number(form.vendor_id) : '',
+  }
+}
 
 export default function AdminProducts() {
   const [products, setProducts] = useState([])
@@ -28,13 +43,14 @@ export default function AdminProducts() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
+    const payload = normalizeProductForm(form)
     try {
       if (editing) {
-        const { data } = await productsApi.update(editing, form)
+        const { data } = await productsApi.update(editing, payload)
         setProducts((prev) => prev.map((product) => product.id === editing ? data : product))
         toast.success('Product updated')
       } else {
-        const { data } = await productsApi.create(form)
+        const { data } = await productsApi.create(payload)
         setProducts((prev) => [data, ...prev])
         toast.success('Product created')
       }
@@ -81,7 +97,12 @@ export default function AdminProducts() {
             {products.map((p) => (
               <tr key={p.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3">
-                  <img src={p.image_url || `https://placehold.co/80x80/f5f0e8/2c2c2c?text=P`} alt="" className="w-10 h-10 object-cover" />
+                  <img
+                    src={p.image_url || FALLBACK_IMAGE}
+                    alt=""
+                    className="w-10 h-10 object-cover"
+                    onError={(e) => { e.currentTarget.src = FALLBACK_IMAGE }}
+                  />
                 </td>
                 <td className="px-4 py-3 font-medium">
                   <span className="flex items-center gap-1.5">

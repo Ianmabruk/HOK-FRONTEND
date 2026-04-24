@@ -5,6 +5,8 @@ import { productsApi } from '../services/api'
 import { useCartStore } from '../store/cartStore'
 import toast from 'react-hot-toast'
 
+const fallbackImageFor = (title) => `https://placehold.co/800x800/f5f0e8/2c2c2c?text=${encodeURIComponent(title)}`
+
 export default function ProductDetail() {
   const { id } = useParams()
   const [product, setProduct] = useState(null)
@@ -17,7 +19,7 @@ export default function ProductDetail() {
 
   useEffect(() => {
     setLoading(true)
-    productsApi.getOne(id).then((r) => {
+    productsApi.getById(id).then((r) => {
       setProduct(r.data)
       if (r.data.category) {
         productsApi.getAll({ category: r.data.category, limit: 4 }).then((res) => {
@@ -57,7 +59,7 @@ export default function ProductDetail() {
   )
 
   const images = [product.image_url, product.image_url].filter(Boolean)
-  if (images.length === 0) images.push(`https://placehold.co/800x800/f5f0e8/2c2c2c?text=${encodeURIComponent(product.title)}`)
+  if (images.length === 0) images.push(fallbackImageFor(product.title))
 
   return (
     <div className="bg-warm-white dark:bg-gray-950 min-h-screen">
@@ -92,6 +94,7 @@ export default function ProductDetail() {
                   alt={product.title}
                   className="w-full h-full object-cover"
                   loading="eager"
+                  onError={(e) => { e.currentTarget.src = fallbackImageFor(product.title) }}
                 />
               )}
               {product.video_url && !showVideo && (
@@ -202,10 +205,11 @@ export default function ProductDetail() {
                 <Link key={p.id} to={`/products/${p.id}`} className="group block">
                   <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded overflow-hidden">
                     <img
-                      src={p.image_url || `https://placehold.co/400x400/f5f0e8/2c2c2c?text=${encodeURIComponent(p.title)}`}
+                      src={p.image_url || fallbackImageFor(p.title)}
                       alt={p.title}
                       loading="lazy"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => { e.currentTarget.src = fallbackImageFor(p.title) }}
                     />
                   </div>
                   <p className="font-serif text-sm mt-2 text-charcoal dark:text-gray-200 line-clamp-1">{p.title}</p>
