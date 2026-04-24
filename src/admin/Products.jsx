@@ -3,13 +3,11 @@ import { productsApi, vendorsApi } from '../services/api'
 import { emitAdminDataChanged } from './adminEvents'
 import { FiPlus, FiEdit2, FiTrash2, FiX, FiVideo } from 'react-icons/fi'
 import toast from 'react-hot-toast'
-import { fallbackImageFor, getPrimaryProductImage, parseImageList, readFileAsDataUrl, readFilesAsDataUrls, serializeImageList } from '../utils/productMedia'
+import { fallbackImageFor, getPrimaryProductImage, parseImageList, serializeImageList } from '../utils/productMedia'
 
 const EMPTY = { title: '', description: '', price: '', stock: '', category: '', image_url: '', video_url: '', vendor_id: '' }
 const CATEGORIES = ['living-room', 'bedroom', 'kitchen', 'office', 'outdoor', 'dining']
 const MAX_IMAGES = 6
-const MAX_IMAGE_SIZE = 4 * 1024 * 1024
-const MAX_VIDEO_SIZE = 20 * 1024 * 1024
 
 function normalizeProductForm(form) {
   return {
@@ -53,13 +51,16 @@ export default function AdminProducts() {
       return
     }
 
-    if (files.some((file) => file.size > MAX_IMAGE_SIZE)) {
-      toast.error('Each image must be 4MB or smaller')
-      return
-    }
-
     try {
-      const uploadedImages = await readFilesAsDataUrls(files)
+      const uploadedImages = []
+      for (const file of files) {
+        const formData = new FormData()
+        formData.append('type', 'image')
+        formData.append('file', file)
+        const { data } = await productsApi.uploadMedia(formData)
+        uploadedImages.push(data.url)
+      }
+
       setForm((prev) => {
         const nextImages = [...parseImageList(prev.image_url), ...uploadedImages].slice(0, MAX_IMAGES)
         if (nextImages.length < parseImageList(prev.image_url).length + uploadedImages.length) {
@@ -67,8 +68,9 @@ export default function AdminProducts() {
         }
         return { ...prev, image_url: serializeImageList(nextImages) }
       })
-    } catch {
-      toast.error('Failed to process image upload')
+      toast.success('Images uploaded')
+    } catch (error) {
+      toast.error(error?.userMessage || error?.response?.data?.message || 'Failed to upload images')
     }
   }
 
@@ -82,16 +84,15 @@ export default function AdminProducts() {
       return
     }
 
-    if (file.size > MAX_VIDEO_SIZE) {
-      toast.error('Video must be 20MB or smaller')
-      return
-    }
-
     try {
-      const uploadedVideo = await readFileAsDataUrl(file)
-      setForm((prev) => ({ ...prev, video_url: uploadedVideo }))
-    } catch {
-      toast.error('Failed to process video upload')
+      const formData = new FormData()
+      formData.append('type', 'video')
+      formData.append('file', file)
+      const { data } = await productsApi.uploadMedia(formData)
+      setForm((prev) => ({ ...prev, video_url: data.url }))
+      toast.success('Video uploaded')
+    } catch (error) {
+      toast.error(error?.userMessage || error?.response?.data?.message || 'Failed to upload video')
     }
   }
 
@@ -227,7 +228,7 @@ export default function AdminProducts() {
                   <input type="file" accept="image/*" multiple className="sr-only" onChange={handleImageUpload} />
                   Upload up to 6 images
                 </label>
-                <p className="text-[11px] text-gray-400 mt-2">Images are stored directly with the product. Use compressed images for faster loading.</p>
+                <p className="text-[11px] text-gray-400 mt-2">Images are uploaded to backend storage and linked to the product automatically.</p>
                 {parseImageList(form.image_url).length > 0 && (
                   <div className="grid grid-cols-3 gap-3 mt-3">
                     {parseImageList(form.image_url).map((image, index) => (
@@ -252,7 +253,7 @@ export default function AdminProducts() {
                   <input type="file" accept="video/*" className="sr-only" onChange={handleVideoUpload} />
                   Upload a product video
                 </label>
-                <p className="text-[11px] text-gray-400 mt-2">MP4 works best. Keep the file under 20MB.</p>
+                <p className="text-[11px] text-gray-400 mt-2">Videos are uploaded to backend storage and linked automatically. MP4 works best.</p>
                 {form.video_url && (
                   <div className="mt-3 space-y-2">
                     <video src={form.video_url} controls className="w-full rounded bg-black max-h-56" />

@@ -1,5 +1,6 @@
 import os
-from flask import Flask, jsonify
+from pathlib import Path
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_socketio import SocketIO
@@ -38,6 +39,13 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+
+    uploads_root = Path(app.config['UPLOAD_FOLDER'])
+    uploads_root.mkdir(parents=True, exist_ok=True)
+
+    @app.get('/uploads/<path:filename>')
+    def uploaded_file(filename):
+        return send_from_directory(uploads_root, filename)
 
     # ── JSON error handlers (must be inside create_app so they bind to this app) ──
     @app.errorhandler(HTTPException)

@@ -71,6 +71,9 @@ export const authApi = {
 export const productsApi = {
   getAll: (params) => api.get('/products', { params }),
   getById: (id) => api.get(`/products/${id}`),
+  uploadMedia: (formData) => api.post('/products/media-upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
   create: (data) => api.post('/products', data),
   update: (id, data) => api.put(`/products/${id}`, data),
   delete: (id) => api.delete(`/products/${id}`),
