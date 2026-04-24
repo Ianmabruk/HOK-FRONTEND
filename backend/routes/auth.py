@@ -18,11 +18,10 @@ from datetime import datetime, timedelta
 import bcrypt
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import (
-    create_access_token,
-    get_jwt_identity,
     jwt_required,
 )
 
+from auth_utils import create_user_access_token, current_user_id
 from models.models import EmailToken, User, db
 from services.email_service import (
     send_login_alert,
@@ -114,7 +113,7 @@ def register():
         verify_url = f"{frontend_url}/verify-email?token={verify_token}"
         send_welcome_email(user.email, user.name, verify_url)
 
-        jwt_token = create_access_token(identity={"id": user.id, "role": user.role})
+        jwt_token = create_user_access_token(user)
         return jsonify({
             "user": user.to_dict(),
             "token": jwt_token,
@@ -155,7 +154,7 @@ def login():
             send_login_alert(user.email, user.name, client_ip, time_str, change_url)
             logger.info("[auth] Login-alert sent to %s (IP changed: %s → %s)", user.email, prev_ip, client_ip)
 
-        jwt_token = create_access_token(identity={"id": user.id, "role": user.role})
+        jwt_token = create_user_access_token(user)
         return jsonify({"user": user.to_dict(), "token": jwt_token}), 200
 
     except Exception:
@@ -194,8 +193,7 @@ def verify_email():
 @auth_bp.post("/resend-verification")
 @jwt_required()
 def resend_verification():
-    identity = get_jwt_identity()
-    user = db.session.get(User, identity["id"])
+    user = db.session.get(User, current_user_id())
     if not user:
         return jsonify({"message": "User not found"}), 404
     if user.email_verified:
