@@ -3,10 +3,13 @@ import { productsApi, vendorsApi } from '../services/api'
 import { emitAdminDataChanged } from './adminEvents'
 import { FiPlus, FiEdit2, FiTrash2, FiX, FiVideo } from 'react-icons/fi'
 import toast from 'react-hot-toast'
+import { fallbackImageFor, getPrimaryProductImage, parseImageList, readFileAsDataUrl, readFilesAsDataUrls, serializeImageList } from '../utils/productMedia'
 
 const EMPTY = { title: '', description: '', price: '', stock: '', category: '', image_url: '', video_url: '', vendor_id: '' }
 const CATEGORIES = ['living-room', 'bedroom', 'kitchen', 'office', 'outdoor', 'dining']
-const FALLBACK_IMAGE = 'https://placehold.co/80x80/f5f0e8/2c2c2c?text=P'
+const MAX_IMAGES = 6
+const MAX_IMAGE_SIZE = 4 * 1024 * 1024
+const MAX_VIDEO_SIZE = 20 * 1024 * 1024
 
 function normalizeProductForm(form) {
   return {
@@ -14,8 +17,8 @@ function normalizeProductForm(form) {
     title: form.title.trim(),
     description: form.description.trim(),
     category: form.category.trim(),
-    image_url: form.image_url.trim(),
-    video_url: form.video_url.trim(),
+    image_url: typeof form.image_url === 'string' ? form.image_url.trim() : '',
+    video_url: typeof form.video_url === 'string' ? form.video_url.trim() : '',
     price: Number(form.price),
     stock: Number(form.stock),
     vendor_id: form.vendor_id ? Number(form.vendor_id) : '',
@@ -38,7 +41,70 @@ export default function AdminProducts() {
   useEffect(() => { load() }, [])
 
   const openNew = () => { setForm(EMPTY); setEditing(null); setModal(true) }
-  const openEdit = (p) => { setForm({ ...p }); setEditing(p.id); setModal(true) }
+  const openEdit = (p) => { setForm({ ...EMPTY, ...p, vendor_id: p.vendor_id || '' }); setEditing(p.id); setModal(true) }
+
+  const handleImageUpload = async (event) => {
+    const files = Array.from(event.target.files || [])
+    event.target.value = ''
+    if (files.length === 0) return
+
+    if (files.some((file) => !file.type.startsWith('image/'))) {
+      toast.error('Only image files are allowed')
+      return
+    }
+
+    if (files.some((file) => file.size > MAX_IMAGE_SIZE)) {
+      toast.error('Each image must be 4MB or smaller')
+      return
+    }
+
+    try {
+      const uploadedImages = await readFilesAsDataUrls(files)
+      setForm((prev) => {
+        const nextImages = [...parseImageList(prev.image_url), ...uploadedImages].slice(0, MAX_IMAGES)
+        if (nextImages.length < parseImageList(prev.image_url).length + uploadedImages.length) {
+          toast('Only the first 6 images were kept', { icon: '📷' })
+        }
+        return { ...prev, image_url: serializeImageList(nextImages) }
+      })
+    } catch {
+      toast.error('Failed to process image upload')
+    }
+  }
+
+  const handleVideoUpload = async (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    if (!file.type.startsWith('video/')) {
+      toast.error('Only video files are allowed')
+      return
+    }
+
+    if (file.size > MAX_VIDEO_SIZE) {
+      toast.error('Video must be 20MB or smaller')
+      return
+    }
+
+    try {
+      const uploadedVideo = await readFileAsDataUrl(file)
+      setForm((prev) => ({ ...prev, video_url: uploadedVideo }))
+    } catch {
+      toast.error('Failed to process video upload')
+    }
+  }
+
+  const removeImageAt = (index) => {
+    setForm((prev) => ({
+      ...prev,
+      image_url: serializeImageList(parseImageList(prev.image_url).filter((_, imageIndex) => imageIndex !== index)),
+    }))
+  }
+
+  const clearVideo = () => {
+    setForm((prev) => ({ ...prev, video_url: '' }))
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -98,10 +164,10 @@ export default function AdminProducts() {
               <tr key={p.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3">
                   <img
-                    src={p.image_url || FALLBACK_IMAGE}
+                    src={getPrimaryProductImage(p)}
                     alt=""
                     className="w-10 h-10 object-cover"
-                    onError={(e) => { e.currentTarget.src = FALLBACK_IMAGE }}
+                    onError={(e) => { e.currentTarget.src = fallbackImageFor(p.title) }}
                   />
                 </td>
                 <td className="px-4 py-3 font-medium">
@@ -143,8 +209,6 @@ export default function AdminProducts() {
                 { label: 'Title', field: 'title', type: 'text' },
                 { label: 'Price', field: 'price', type: 'number' },
                 { label: 'Stock', field: 'stock', type: 'number' },
-                { label: 'Image URL', field: 'image_url', type: 'url' },
-                { label: 'Video URL', field: 'video_url', type: 'url' },
               ].map(({ label, field, type }) => (
                 <div key={field}>
                   <label className="text-xs uppercase tracking-widest text-gray-500 block mb-1">{label}</label>
@@ -157,6 +221,47 @@ export default function AdminProducts() {
                   />
                 </div>
               ))}
+              <div>
+                <label className="text-xs uppercase tracking-widest text-gray-500 block mb-1">Product Images</label>
+                <label className="flex items-center justify-center w-full border border-dashed border-gray-300 px-4 py-4 text-sm text-gray-500 cursor-pointer hover:border-charcoal hover:text-charcoal transition-colors rounded">
+                  <input type="file" accept="image/*" multiple className="sr-only" onChange={handleImageUpload} />
+                  Upload up to 6 images
+                </label>
+                <p className="text-[11px] text-gray-400 mt-2">Images are stored directly with the product. Use compressed images for faster loading.</p>
+                {parseImageList(form.image_url).length > 0 && (
+                  <div className="grid grid-cols-3 gap-3 mt-3">
+                    {parseImageList(form.image_url).map((image, index) => (
+                      <div key={`${index}-${image.slice(0, 24)}`} className="relative rounded overflow-hidden bg-gray-100 aspect-square">
+                        <img src={image} alt="" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeImageAt(index)}
+                          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 text-white flex items-center justify-center"
+                          aria-label="Remove image"
+                        >
+                          <FiX size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-widest text-gray-500 block mb-1">Product Video</label>
+                <label className="flex items-center justify-center w-full border border-dashed border-gray-300 px-4 py-4 text-sm text-gray-500 cursor-pointer hover:border-charcoal hover:text-charcoal transition-colors rounded">
+                  <input type="file" accept="video/*" className="sr-only" onChange={handleVideoUpload} />
+                  Upload a product video
+                </label>
+                <p className="text-[11px] text-gray-400 mt-2">MP4 works best. Keep the file under 20MB.</p>
+                {form.video_url && (
+                  <div className="mt-3 space-y-2">
+                    <video src={form.video_url} controls className="w-full rounded bg-black max-h-56" />
+                    <button type="button" onClick={clearVideo} className="text-xs uppercase tracking-widest text-red-500 hover:text-red-600">
+                      Remove video
+                    </button>
+                  </div>
+                )}
+              </div>
               <div>
                 <label className="text-xs uppercase tracking-widest text-gray-500 block mb-1">Category</label>
                 <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full border border-gray-200 px-3 py-2 text-sm outline-none">

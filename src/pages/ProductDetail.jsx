@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { FiShoppingBag, FiMinus, FiPlus, FiChevronRight, FiPlay } from 'react-icons/fi'
+import { FiShoppingBag, FiMinus, FiPlus, FiChevronRight, FiPlay, FiMessageCircle, FiX } from 'react-icons/fi'
 import { productsApi } from '../services/api'
 import { useCartStore } from '../store/cartStore'
 import toast from 'react-hot-toast'
-
-const fallbackImageFor = (title) => `https://placehold.co/800x800/f5f0e8/2c2c2c?text=${encodeURIComponent(title)}`
+import { requestConsultationChat } from '../utils/chatEvents'
+import { fallbackImageFor, getPrimaryProductImage, normalizeProductGallery } from '../utils/productMedia'
 
 export default function ProductDetail() {
   const { id } = useParams()
@@ -14,6 +14,8 @@ export default function ProductDetail() {
   const [qty, setQty] = useState(1)
   const [activeImg, setActiveImg] = useState(0)
   const [showVideo, setShowVideo] = useState(false)
+  const [consultationOpen, setConsultationOpen] = useState(false)
+  const [consultationIssue, setConsultationIssue] = useState('')
   const [related, setRelated] = useState([])
   const addItem = useCartStore((s) => s.addItem)
 
@@ -31,10 +33,35 @@ export default function ProductDetail() {
     }).finally(() => setLoading(false))
   }, [id])
 
+  useEffect(() => {
+    setActiveImg(0)
+    setShowVideo(false)
+    setConsultationOpen(false)
+    setConsultationIssue('')
+  }, [product?.id])
+
   const handleAdd = () => {
     if (!product) return
     for (let i = 0; i < qty; i++) addItem(product)
     toast.success(`${qty}× ${product.title} added to cart`)
+  }
+
+  const handleConsultationSubmit = (e) => {
+    e.preventDefault()
+    if (!product) return
+
+    const issue = consultationIssue.trim() || `I would like to book a consultation for ${product.title}.`
+    requestConsultationChat({
+      message: issue,
+      product: {
+        id: product.id,
+        title: product.title,
+        price: product.price,
+        image_url: getPrimaryProductImage(product),
+      },
+    })
+    setConsultationOpen(false)
+    setConsultationIssue('')
   }
 
   if (loading) return (
@@ -58,8 +85,8 @@ export default function ProductDetail() {
     </div>
   )
 
-  const images = [product.image_url, product.image_url].filter(Boolean)
-  if (images.length === 0) images.push(fallbackImageFor(product.title))
+  const images = normalizeProductGallery(product)
+  const hasVideo = Boolean(product.video_url)
 
   return (
     <div className="bg-warm-white dark:bg-gray-950 min-h-screen">
@@ -108,7 +135,7 @@ export default function ProductDetail() {
               )}
             </div>
             {/* Thumbnail row */}
-            {images.length > 1 && (
+            {(images.length > 1 || hasVideo) && (
               <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
                 {images.map((img, i) => (
                   <button
@@ -119,6 +146,16 @@ export default function ProductDetail() {
                     <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
                   </button>
                 ))}
+                {hasVideo && (
+                  <button
+                    type="button"
+                    onClick={() => setShowVideo(true)}
+                    className={`shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded border-2 flex flex-col items-center justify-center gap-1 text-[10px] uppercase tracking-[0.18em] ${showVideo ? 'border-charcoal dark:border-gray-300 text-charcoal dark:text-gray-200 bg-white dark:bg-gray-900' : 'border-transparent text-gray-400 bg-gray-100 dark:bg-gray-800 hover:text-charcoal dark:hover:text-gray-200'}`}
+                  >
+                    <FiPlay size={16} />
+                    Video
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -132,6 +169,16 @@ export default function ProductDetail() {
             <p className="text-2xl sm:text-3xl font-medium text-charcoal dark:text-gray-200 mb-2">
               ${Number(product.price).toFixed(2)}
             </p>
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <span className="inline-flex items-center rounded-full bg-cream dark:bg-gray-800 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-charcoal dark:text-gray-300">
+                {images.length} {images.length === 1 ? 'image' : 'images'}
+              </span>
+              {hasVideo && (
+                <span className="inline-flex items-center rounded-full bg-charcoal text-cream px-3 py-1 text-[11px] uppercase tracking-[0.18em]">
+                  Product video included
+                </span>
+              )}
+            </div>
             {product.stock === 0 ? (
               <p className="text-sm text-red-500 mb-6">Out of stock</p>
             ) : product.stock <= 5 ? (
@@ -175,12 +222,14 @@ export default function ProductDetail() {
               </button>
             </div>
 
-            <Link
-              to="/products?category=living-room"
+            <button
+              type="button"
+              onClick={() => setConsultationOpen(true)}
               className="btn-outline w-full flex items-center justify-center gap-2 text-xs"
             >
+              <FiMessageCircle size={14} />
               Book a Design Consultation
-            </Link>
+            </button>
 
             {/* Product meta */}
             {(product.vendor_id || product.category) && (
@@ -205,7 +254,7 @@ export default function ProductDetail() {
                 <Link key={p.id} to={`/products/${p.id}`} className="group block">
                   <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded overflow-hidden">
                     <img
-                      src={p.image_url || fallbackImageFor(p.title)}
+                      src={getPrimaryProductImage(p)}
                       alt={p.title}
                       loading="lazy"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -220,6 +269,46 @@ export default function ProductDetail() {
           </div>
         )}
       </div>
+
+      {consultationOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 px-4 flex items-center justify-center">
+          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+              <div>
+                <h2 className="font-serif text-xl text-charcoal dark:text-gray-100">Book a consultation</h2>
+                <p className="text-sm text-gray-400 mt-1">Tell us what you need and we will continue in the website chat.</p>
+              </div>
+              <button type="button" onClick={() => setConsultationOpen(false)} className="text-gray-400 hover:text-charcoal dark:hover:text-gray-200">
+                <FiX size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleConsultationSubmit} className="p-5 space-y-4">
+              <div className="rounded-xl bg-cream dark:bg-gray-800 px-4 py-3 flex items-center gap-3">
+                <img src={getPrimaryProductImage(product)} alt={product.title} className="w-14 h-14 rounded object-cover" />
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-terracotta">Consultation request</p>
+                  <p className="font-medium text-charcoal dark:text-gray-200">{product.title}</p>
+                  <p className="text-sm text-gray-400">${Number(product.price).toFixed(2)}</p>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-[0.18em] text-gray-500 block mb-2">Your issue or request</label>
+                <textarea
+                  value={consultationIssue}
+                  onChange={(e) => setConsultationIssue(e.target.value)}
+                  rows={5}
+                  placeholder="Example: I need help choosing finishes, dimensions, and delivery options for my living room."
+                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent px-4 py-3 text-sm text-charcoal dark:text-gray-200 outline-none focus:border-charcoal dark:focus:border-gray-400 resize-none"
+                />
+              </div>
+              <div className="flex gap-3">
+                <button type="submit" className="btn-primary flex-1">Open Chat</button>
+                <button type="button" onClick={() => setConsultationOpen(false)} className="btn-outline flex-1">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

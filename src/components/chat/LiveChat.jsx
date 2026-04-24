@@ -4,6 +4,8 @@ import { io } from 'socket.io-client'
 import { useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { productsApi } from '../../services/api'
+import { CONSULTATION_CHAT_EVENT } from '../../utils/chatEvents'
+import { fallbackImageFor, getPrimaryProductImage } from '../../utils/productMedia'
 
 let socket
 
@@ -14,8 +16,29 @@ export default function LiveChat() {
   const [product, setProduct] = useState(null)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
+  const pendingMessageRef = useRef(null)
   const { user, token } = useAuthStore()
   const location = useLocation()
+
+  const buildMessage = (messageText, currentProduct, includeProductContext) => ({
+    text: messageText.trim(),
+    sender: user?.name || 'Guest',
+    timestamp: new Date().toISOString(),
+    ...(includeProductContext && currentProduct ? {
+      product_id: currentProduct.id,
+      product_title: currentProduct.title,
+      product_price: currentProduct.price,
+      product_image: getPrimaryProductImage(currentProduct),
+    } : {}),
+  })
+
+  const queueOrEmitMessage = (message) => {
+    if (socket?.connected) {
+      socket.emit('user_message', message)
+      return
+    }
+    pendingMessageRef.current = message
+  }
 
   // Detect if we're on a product page and fetch its details
   useEffect(() => {
@@ -31,11 +54,54 @@ export default function LiveChat() {
   useEffect(() => {
     if (!open) return
     socket = io({ path: '/socket.io', auth: { token } })
+    socket.on('connect', () => {
+      if (pendingMessageRef.current) {
+        socket.emit('user_message', pendingMessageRef.current)
+        pendingMessageRef.current = null
+      }
+    })
     socket.on('chat_message', (msg) => setMessages((prev) => [...prev, msg]))
-    socket.on('chat_history', (history) => setMessages(history))
+    socket.on('chat_history', (history) => {
+      setMessages((prev) => {
+        const localSystemMessages = prev.filter((msg) => msg.system)
+        return [...history, ...localSystemMessages]
+      })
+    })
     setTimeout(() => inputRef.current?.focus(), 100)
-    return () => socket?.disconnect()
+    return () => {
+      socket?.disconnect()
+      socket = null
+    }
   }, [open])
+
+  useEffect(() => {
+    const handleConsultationRequest = (event) => {
+      const consultationProduct = event.detail?.product || null
+      const messageText = event.detail?.message?.trim()
+      setOpen(true)
+      if (consultationProduct) {
+        setProduct(consultationProduct)
+      }
+      if (!messageText) return
+
+      const outboundMessage = buildMessage(messageText, consultationProduct, true)
+      queueOrEmitMessage(outboundMessage)
+      setMessages((prev) => ([
+        ...prev,
+        { ...outboundMessage, own: true },
+        {
+          sender: 'HOK Design Support',
+          text: 'Consultation request received. We will reach out soon here in the chat.',
+          timestamp: new Date().toISOString(),
+          system: true,
+        },
+      ]))
+      setText('')
+    }
+
+    window.addEventListener(CONSULTATION_CHAT_EVENT, handleConsultationRequest)
+    return () => window.removeEventListener(CONSULTATION_CHAT_EVENT, handleConsultationRequest)
+  }, [user?.name])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -43,19 +109,8 @@ export default function LiveChat() {
 
   const send = () => {
     if (!text.trim()) return
-    const msg = {
-      text: text.trim(),
-      sender: user?.name || 'Guest',
-      timestamp: new Date().toISOString(),
-      // Attach product context to every message so admin always has it
-      ...(product && messages.length === 0 ? {
-        product_id: product.id,
-        product_title: product.title,
-        product_price: product.price,
-        product_image: product.image_url,
-      } : {}),
-    }
-    socket?.emit('user_message', msg)
+    const msg = buildMessage(text, product, Boolean(product && messages.length === 0))
+    queueOrEmitMessage(msg)
     setMessages((prev) => [...prev, { ...msg, own: true }])
     setText('')
   }
@@ -93,7 +148,12 @@ export default function LiveChat() {
           {product && (
             <div className="shrink-0 border-b border-gray-100 dark:border-gray-800 bg-cream/60 dark:bg-gray-800/60 px-3 py-2 flex items-center gap-3">
               {product.image_url ? (
-                <img src={product.image_url} alt={product.title} className="w-10 h-10 object-cover rounded shrink-0" />
+                <img
+                  src={getPrimaryProductImage(product)}
+                  alt={product.title}
+                  className="w-10 h-10 object-cover rounded shrink-0"
+                  onError={(e) => { e.currentTarget.src = fallbackImageFor(product.title) }}
+                />
               ) : (
                 <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center shrink-0">
                   <FiShoppingBag size={14} className="text-gray-400" />
@@ -134,10 +194,15 @@ export default function LiveChat() {
                     {isOwn && i === 0 && m.product_title && (
                       <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/20">
                         {m.product_image && (
-                          <img src={m.product_image} alt="" className="w-8 h-8 object-cover rounded" />
+                          <img
+                            src={m.product_image}
+                            alt=""
+                            className="w-8 h-8 object-cover rounded"
+                            onError={(e) => { e.currentTarget.src = fallbackImageFor(m.product_title) }}
+                          />
                         )}
                         <div>
-                          <p className="text-[10px] text-white/60">Product inquiry</p>
+                          <p className="text-[10px] text-white/60">{m.system ? 'Support update' : 'Product inquiry'}</p>
                           <p className="text-xs font-medium text-white/90 leading-tight">{m.product_title}</p>
                         </div>
                       </div>
