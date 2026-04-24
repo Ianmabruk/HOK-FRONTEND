@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { useAuthStore } from '../store/authStore'
 
+const defaultProductionApiUrl = 'https://hok-backend-b5u6.onrender.com/api'
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim()
 const isGithubRepoUrl = configuredApiUrl
   ? /^https?:\/\/(www\.)?github\.com\//i.test(configuredApiUrl)
@@ -11,7 +12,7 @@ const isLocalApiUrl = configuredApiUrl
 const isInvalidProductionApiUrl = isGithubRepoUrl || isLocalApiUrl
 const apiBaseURL = import.meta.env.DEV
   ? '/api'
-  : ((configuredApiUrl && !isInvalidProductionApiUrl) ? configuredApiUrl : '/api')
+  : ((configuredApiUrl && !isInvalidProductionApiUrl) ? configuredApiUrl : defaultProductionApiUrl)
 
 const api = axios.create({
   baseURL: apiBaseURL,
@@ -41,8 +42,8 @@ api.interceptors.response.use(
       return Promise.reject(err)
     }
 
-    if (err.response.status === 404 && apiBaseURL === '/api' && !import.meta.env.DEV) {
-      err.userMessage = 'API endpoint not found. Set VITE_API_URL to your deployed backend URL, or configure a /api proxy on your host.'
+    if (err.response.status === 404 && !import.meta.env.DEV) {
+      err.userMessage = `API endpoint not found at ${apiBaseURL}. Check that your deployed backend is live and that VITE_API_URL is correct.`
       return Promise.reject(err)
     }
 
