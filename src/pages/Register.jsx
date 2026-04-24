@@ -32,7 +32,7 @@ export default function Register() {
         navigate('/admin')
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Registration failed')
+      toast.error(err.userMessage || err.response?.data?.message || 'Registration failed. Please try again.')
     } finally {
       setLoading(false)
     }

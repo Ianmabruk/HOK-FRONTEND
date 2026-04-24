@@ -2,7 +2,7 @@ import axios from 'axios'
 import { useAuthStore } from '../store/authStore'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: '/api',
 })
 
 api.interceptors.request.use((config) => {
@@ -14,9 +14,24 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    if (!err.response) {
+      // Network error — server is not reachable
+      err.userMessage = 'Cannot connect to the server. Please make sure the backend is running on port 5000.'
+      return Promise.reject(err)
+    }
+
+    if (err.response.status === 401) {
       useAuthStore.getState().logout()
     }
+
+    // Extract message from response — handle both JSON and unexpected HTML responses
+    const data = err.response.data
+    if (data && typeof data === 'object' && data.message) {
+      err.userMessage = data.message
+    } else {
+      err.userMessage = `Server error (${err.response.status}). Please try again.`
+    }
+
     return Promise.reject(err)
   }
 )

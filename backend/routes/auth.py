@@ -95,30 +95,36 @@ def register():
     if pw_err:
         return jsonify({"message": pw_err}), 400
 
-    if User.query.filter_by(email=email).first():
-        return jsonify({"message": "Email already registered"}), 409
+    try:
+        if User.query.filter_by(email=email).first():
+            return jsonify({"message": "Email already registered"}), 409
 
-    is_first = User.query.count() == 0
-    role = "admin" if is_first else "customer"
-    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+        is_first = User.query.count() == 0
+        role = "admin" if is_first else "customer"
+        hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
-    user = User(name=name, email=email, password=hashed, role=role, email_verified=False)
-    db.session.add(user)
-    db.session.flush()  # populate user.id
+        user = User(name=name, email=email, password=hashed, role=role, email_verified=False)
+        db.session.add(user)
+        db.session.flush()  # populate user.id
 
-    verify_token = _make_token(user.id, "verify_email", hours=24)
-    db.session.commit()
+        verify_token = _make_token(user.id, "verify_email", hours=24)
+        db.session.commit()
 
-    frontend_url = current_app.config.get("FRONTEND_URL", "http://localhost:5173")
-    verify_url = f"{frontend_url}/verify-email?token={verify_token}"
-    send_welcome_email(user.email, user.name, verify_url)
+        frontend_url = current_app.config.get("FRONTEND_URL", "http://localhost:5173")
+        verify_url = f"{frontend_url}/verify-email?token={verify_token}"
+        send_welcome_email(user.email, user.name, verify_url)
 
-    jwt_token = create_access_token(identity={"id": user.id, "role": user.role})
-    return jsonify({
-        "user": user.to_dict(),
-        "token": jwt_token,
-        "message": "Account created! Check your email to verify your address.",
-    }), 201
+        jwt_token = create_access_token(identity={"id": user.id, "role": user.role})
+        return jsonify({
+            "user": user.to_dict(),
+            "token": jwt_token,
+            "message": "Account created! Check your email to verify your address.",
+        }), 201
+
+    except Exception:
+        db.session.rollback()
+        logger.exception("Register failed for email=%s", email)
+        return jsonify({"message": "Registration failed due to a server error. Please try again."}), 500
 
 
 # ─── POST /login ──────────────────────────────────────────────────────────────
@@ -129,27 +135,33 @@ def login():
     if not all(k in data for k in ("email", "password")):
         return jsonify({"message": "Missing fields"}), 400
 
-    user = User.query.filter_by(email=data["email"].lower().strip()).first()
-    if not user or not bcrypt.checkpw(data["password"].encode(), user.password.encode()):
-        return jsonify({"message": "Invalid credentials"}), 401
+    try:
+        user = User.query.filter_by(email=data["email"].lower().strip()).first()
+        if not user or not bcrypt.checkpw(data["password"].encode(), user.password.encode()):
+            return jsonify({"message": "Invalid email or password"}), 401
 
-    client_ip = _client_ip()
-    prev_ip = user.last_login_ip
+        client_ip = _client_ip()
+        prev_ip = user.last_login_ip
 
-    # Persist updated IP
-    user.last_login_ip = client_ip
-    db.session.commit()
+        # Persist updated IP
+        user.last_login_ip = client_ip
+        db.session.commit()
 
-    # Fire login-alert email asynchronously if IP changed (suspicious activity)
-    if prev_ip and prev_ip != client_ip:
-        frontend_url = current_app.config.get("FRONTEND_URL", "http://localhost:5173")
-        change_url = f"{frontend_url}/forgot-password"
-        time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-        send_login_alert(user.email, user.name, client_ip, time_str, change_url)
-        logger.info("[auth] Login-alert sent to %s (IP changed: %s → %s)", user.email, prev_ip, client_ip)
+        # Fire login-alert email asynchronously if IP changed (suspicious activity)
+        if prev_ip and prev_ip != client_ip:
+            frontend_url = current_app.config.get("FRONTEND_URL", "http://localhost:5173")
+            change_url = f"{frontend_url}/forgot-password"
+            time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+            send_login_alert(user.email, user.name, client_ip, time_str, change_url)
+            logger.info("[auth] Login-alert sent to %s (IP changed: %s → %s)", user.email, prev_ip, client_ip)
 
-    jwt_token = create_access_token(identity={"id": user.id, "role": user.role})
-    return jsonify({"user": user.to_dict(), "token": jwt_token}), 200
+        jwt_token = create_access_token(identity={"id": user.id, "role": user.role})
+        return jsonify({"user": user.to_dict(), "token": jwt_token}), 200
+
+    except Exception:
+        db.session.rollback()
+        logger.exception("Login failed for email=%s", data.get('email', ''))
+        return jsonify({"message": "Login failed due to a server error. Please try again."}), 500
 
 
 # ─── GET /verify-email?token= ─────────────────────────────────────────────────

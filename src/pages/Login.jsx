@@ -31,7 +31,7 @@ export default function Login() {
       }
       navigate(data.user.role === 'admin' ? '/admin' : '/')
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Invalid credentials')
+      toast.error(err.userMessage || err.response?.data?.message || 'Invalid email or password')
     } finally {
       setLoading(false)
     }
