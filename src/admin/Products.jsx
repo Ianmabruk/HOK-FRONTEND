@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { productsApi, vendorsApi } from '../services/api'
+import { emitAdminDataChanged } from './adminEvents'
 import { FiPlus, FiEdit2, FiTrash2, FiX, FiVideo } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 
@@ -29,14 +30,16 @@ export default function AdminProducts() {
     setLoading(true)
     try {
       if (editing) {
-        await productsApi.update(editing, form)
+        const { data } = await productsApi.update(editing, form)
+        setProducts((prev) => prev.map((product) => product.id === editing ? data : product))
         toast.success('Product updated')
       } else {
-        await productsApi.create(form)
+        const { data } = await productsApi.create(form)
+        setProducts((prev) => [data, ...prev])
         toast.success('Product created')
       }
       setModal(false)
-      load()
+      emitAdminDataChanged({ type: 'product-changed' })
     } catch {
       toast.error('Failed to save product')
     } finally {
@@ -48,8 +51,9 @@ export default function AdminProducts() {
     if (!confirm('Delete this product?')) return
     try {
       await productsApi.delete(id)
+      setProducts((prev) => prev.filter((product) => product.id !== id))
+      emitAdminDataChanged({ type: 'product-changed' })
       toast.success('Deleted')
-      load()
     } catch {
       toast.error('Failed to delete')
     }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import { FiDollarSign, FiUsers, FiShoppingCart, FiPackage } from 'react-icons/fi'
+import { onAdminDataChanged } from './adminEvents'
 import { ordersApi, usersApi, productsApi } from '../services/api'
 
 const MOCK_REVENUE = [
@@ -26,7 +27,7 @@ function StatCard({ icon: Icon, label, value, color }) {
 export default function Dashboard() {
   const [stats, setStats] = useState({ users: 0, orders: 0, products: 0, revenue: 0 })
 
-  useEffect(() => {
+  const loadStats = () => {
     Promise.allSettled([usersApi.getAll(), ordersApi.getAll(), productsApi.getAll({})])
       .then(([u, o, p]) => {
         setStats({
@@ -36,6 +37,11 @@ export default function Dashboard() {
           revenue: o.value?.data?.reduce((s, ord) => s + Number(ord.total_price || 0), 0) || 0,
         })
       })
+  }
+
+  useEffect(() => {
+    loadStats()
+    return onAdminDataChanged(loadStats)
   }, [])
 
   return (
