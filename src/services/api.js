@@ -2,9 +2,12 @@ import axios from 'axios'
 import { useAuthStore } from '../store/authStore'
 
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim()
+const isLocalApiUrl = configuredApiUrl
+  ? /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(configuredApiUrl)
+  : false
 const apiBaseURL = import.meta.env.DEV
   ? '/api'
-  : (configuredApiUrl || '/api')
+  : ((configuredApiUrl && !isLocalApiUrl) ? configuredApiUrl : '/api')
 
 const api = axios.create({
   baseURL: apiBaseURL,
@@ -30,7 +33,7 @@ api.interceptors.response.use(
     }
 
     if (err.response.status === 404 && apiBaseURL === '/api' && !import.meta.env.DEV) {
-      err.userMessage = 'API endpoint not found. Set VITE_API_URL for the deployed frontend or configure a /api proxy on your host.'
+      err.userMessage = 'API endpoint not found. Set VITE_API_URL to your deployed backend URL, or configure a /api proxy on your host.'
       return Promise.reject(err)
     }
 
