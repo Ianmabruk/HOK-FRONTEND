@@ -57,8 +57,9 @@ export default function Login() {
         </div>
         {isAdminFlow && (
           <div className="mb-6 p-4 bg-cream dark:bg-gray-800 border-l-4 border-terracotta text-sm text-charcoal dark:text-gray-200">
-            <strong>Admin Access.</strong> Sign in to your admin account, or{' '}
-            <Link to="/register?admin=1" className="underline hover:text-terracotta">create one</Link>.
+            <strong>Admin Access.</strong> Sign in with the existing admin account, or{' '}
+            <Link to="/register?admin=1" className="underline hover:text-terracotta">create the first account</Link>{' '}
+            if no admin has been registered yet.
           </div>
         )}
         {unverified && (
@@ -113,7 +114,9 @@ export default function Login() {
           </form>
           <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
             Don&apos;t have an account?{' '}
-            <Link to={`/register${isAdminFlow ? '?admin=1' : ''}`} className="text-charcoal dark:text-gray-200 underline hover:text-terracotta">Create one</Link>
+            <Link to={`/register${isAdminFlow ? '?admin=1' : ''}`} className="text-charcoal dark:text-gray-200 underline hover:text-terracotta">
+              {isAdminFlow ? 'Create the first admin account' : 'Create one'}
+            </Link>
           </p>
         </div>
       </div>

@@ -85,9 +85,9 @@ export default function Register() {
         </div>
         {isAdminFlow && (
           <div className="mb-6 p-4 bg-cream dark:bg-gray-800 border-l-4 border-terracotta text-sm text-charcoal dark:text-gray-200">
-            <strong>Admin Access Required.</strong> Create an account below, or{' '}
-            <Link to="/login?admin=1" className="underline hover:text-terracotta">sign in</Link>{' '}
-            if you already have one.
+            <strong>Admin Access Required.</strong> The first account created becomes the admin account.{' '}
+            <Link to="/login?admin=1" className="underline hover:text-terracotta">Sign in</Link>{' '}
+            instead if the admin account already exists.
           </div>
         )}
         <div className="bg-white dark:bg-gray-900 rounded shadow-sm border border-gray-100 dark:border-gray-800 p-8">
