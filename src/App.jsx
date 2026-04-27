@@ -1,7 +1,8 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/layout/Layout'
 import { isAdminUser, useAuthStore } from './store/authStore'
+import { authApi } from './services/api'
 
 const Home = lazy(() => import('./pages/Home'))
 const Products = lazy(() => import('./pages/Products'))
@@ -32,6 +33,37 @@ function PageLoader() {
   )
 }
 
+function AdminRoute({ children }) {
+  const { user } = useAuthStore()
+  const [setupState, setSetupState] = useState('checking')
+
+  useEffect(() => {
+    if (user) return undefined
+
+    let active = true
+
+    authApi.getSetupStatus()
+      .then(({ data }) => {
+        if (!active) return
+        setSetupState(data.requires_admin_setup ? 'needs-setup' : 'ready')
+      })
+      .catch(() => {
+        if (!active) return
+        setSetupState('ready')
+      })
+
+    return () => {
+      active = false
+    }
+  }, [user])
+
+  if (user && !isAdminUser(user)) return <Navigate to="/?unauthorized=1" replace />
+  if (user) return children
+  if (setupState === 'checking') return <PageLoader />
+  if (setupState === 'needs-setup') return <Navigate to="/register?admin=1" replace />
+  return <Navigate to="/login?admin=1" replace />
+}
+
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user } = useAuthStore()
   if (!user) return <Navigate to={adminOnly ? '/login?admin=1' : '/login'} />
@@ -58,7 +90,7 @@ export default function App() {
           <Route path="reset-password" element={<ResetPassword />} />
           <Route path="*" element={<NotFound />} />
         </Route>
-        <Route path="/admin" element={<ProtectedRoute adminOnly><AdminLayout /></ProtectedRoute>}>
+        <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
           <Route index element={<Dashboard />} />
           <Route path="products" element={<AdminProducts />} />
           <Route path="orders" element={<AdminOrders />} />
