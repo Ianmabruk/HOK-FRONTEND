@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { FiAlertCircle } from 'react-icons/fi'
 import { authApi } from '../services/api'
@@ -11,9 +11,16 @@ export default function Login() {
   const [unverified, setUnverified] = useState(false)
   const [resending, setResending] = useState(false)
   const setAuth = useAuthStore((s) => s.setAuth)
+  const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const isAdminFlow = searchParams.get('admin') === '1'
+  const isSwitchFlow = searchParams.get('switch') === '1'
+
+  useEffect(() => {
+    if (isSwitchFlow && user) logout()
+  }, [isSwitchFlow, logout, user])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -58,7 +65,8 @@ export default function Login() {
         </div>
         {isAdminFlow && (
           <div className="mb-6 p-4 bg-cream dark:bg-gray-800 border-l-4 border-terracotta text-sm text-charcoal dark:text-gray-200">
-            <strong>Admin Access.</strong> Sign in with the existing admin account, or{' '}
+            <strong>{isSwitchFlow ? 'Admin Sign-In Required.' : 'Admin Access.'}</strong>{' '}
+            {isSwitchFlow ? 'Your current session is not an admin account. Sign in with the admin account to continue, or ' : 'Sign in with the existing admin account, or '}
             <Link to="/register?admin=1" className="underline hover:text-terracotta">create the first account</Link>{' '}
             if no admin has been registered yet.
           </div>

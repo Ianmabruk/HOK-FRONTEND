@@ -57,7 +57,7 @@ function AdminRoute({ children }) {
     }
   }, [user])
 
-  if (user && !isAdminUser(user)) return <Navigate to="/?unauthorized=1" replace />
+  if (user && !isAdminUser(user)) return <Navigate to="/login?admin=1&switch=1" replace />
   if (user) return children
   if (setupState === 'checking') return <PageLoader />
   if (setupState === 'needs-setup') return <Navigate to="/register?admin=1" replace />
