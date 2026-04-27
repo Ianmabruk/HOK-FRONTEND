@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { productsApi } from '../services/api'
 import ProductCard from '../components/ui/ProductCard'
-import { useAuthStore } from '../store/authStore'
+import { isAdminUser, useAuthStore } from '../store/authStore'
 
 const CATEGORIES = [
   { name: 'Living Room', slug: 'living-room', img: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80' },
@@ -164,7 +164,7 @@ export default function Home() {
         ) : (
           <div className="text-center py-16">
             <p className="text-gray-400 mb-4">No products yet. Check back soon!</p>
-            {user?.role === 'admin' && (
+            {isAdminUser(user) && (
               <Link to="/admin/products" className="btn-primary inline-flex">Add Products</Link>
             )}
           </div>

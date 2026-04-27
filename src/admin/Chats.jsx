@@ -2,10 +2,12 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { io } from 'socket.io-client'
 import { useAuthStore } from '../store/authStore'
 import { FiSend, FiMessageCircle, FiShoppingBag } from 'react-icons/fi'
+import { useCurrencyStore } from '../store/currencyStore'
+import { formatPrice } from '../utils/currency'
 
 let socket
 
-function ProductCard({ product_id, product_title, product_price, product_image }) {
+function ProductCard({ product_title, product_price, product_image, currency }) {
   if (!product_title) return null
   return (
     <div className="flex items-center gap-3 bg-cream dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 mb-3">
@@ -19,7 +21,7 @@ function ProductCard({ product_id, product_title, product_price, product_image }
       <div className="min-w-0">
         <p className="text-[10px] uppercase tracking-wider text-terracotta font-medium">Product Inquiry</p>
         <p className="text-sm font-serif text-charcoal dark:text-gray-200 truncate">{product_title}</p>
-        {product_price && <p className="text-xs text-gray-400">${Number(product_price).toFixed(2)}</p>}
+        {product_price && <p className="text-xs text-gray-400">{formatPrice(product_price, currency)}</p>}
       </div>
     </div>
   )
@@ -34,6 +36,7 @@ export default function AdminChats() {
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
   const { token } = useAuthStore()
+  const currency = useCurrencyStore((s) => s.currency)
 
   useEffect(() => {
     socket = io({ path: '/socket.io', auth: { token } })
@@ -52,7 +55,7 @@ export default function AdminChats() {
     // Refresh conversation list every 20s
     const interval = setInterval(() => socket?.emit('admin_get_conversations'), 20_000)
     return () => { socket?.disconnect(); clearInterval(interval) }
-  }, [active])
+  }, [active, token])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -146,6 +149,7 @@ export default function AdminChats() {
                     product_title={active.product_title}
                     product_price={active.product_price}
                     product_image={active.product_image}
+                    currency={currency}
                   />
                 )}
                 {messages.map((m, i) => {

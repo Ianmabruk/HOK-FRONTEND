@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/layout/Layout'
-import { useAuthStore } from './store/authStore'
+import { isAdminUser, useAuthStore } from './store/authStore'
 
 const Home = lazy(() => import('./pages/Home'))
 const Products = lazy(() => import('./pages/Products'))
@@ -11,6 +11,7 @@ const Login = lazy(() => import('./pages/Login'))
 const Register = lazy(() => import('./pages/Register'))
 const Checkout = lazy(() => import('./pages/Checkout'))
 const Wishlist = lazy(() => import('./pages/Wishlist'))
+const Settings = lazy(() => import('./pages/Settings'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'))
@@ -34,7 +35,7 @@ function PageLoader() {
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user } = useAuthStore()
   if (!user) return <Navigate to={adminOnly ? '/login?admin=1' : '/login'} />
-  if (adminOnly && user.role !== 'admin') return <Navigate to="/?unauthorized=1" />
+  if (adminOnly && !isAdminUser(user)) return <Navigate to="/?unauthorized=1" />
   return children
 }
 
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="products/:id" element={<ProductDetail />} />
           <Route path="cart" element={<Cart />} />
           <Route path="wishlist" element={<Wishlist />} />
+          <Route path="settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />

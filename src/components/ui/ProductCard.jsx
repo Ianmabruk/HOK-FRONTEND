@@ -2,18 +2,21 @@ import { Link } from 'react-router-dom'
 import { FiShoppingBag, FiHeart } from 'react-icons/fi'
 import { FaHeart } from 'react-icons/fa'
 import { useCartStore } from '../../store/cartStore'
+import { useCurrencyStore } from '../../store/currencyStore'
 import { useWishlistStore } from '../../store/wishlistStore'
 import toast from 'react-hot-toast'
+import { formatPrice } from '../../utils/currency'
 import { fallbackImageFor, getPrimaryProductImage } from '../../utils/productMedia'
 
 export default function ProductCard({ product }) {
   const addItem = useCartStore((s) => s.addItem)
+  const currency = useCurrencyStore((s) => s.currency)
   const { toggle, has } = useWishlistStore()
   const wishlisted = has(product.id)
 
   const handleAdd = (e) => {
     e.preventDefault()
-    addItem(product)
+    addItem(product, product.customizations || null)
     toast.success(`${product.title} added to cart`)
   }
 
@@ -64,7 +67,7 @@ export default function ProductCard({ product }) {
       <div className="mt-3 px-0.5">
         <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500">{product.category}</p>
         <h3 className="font-serif text-sm sm:text-base text-charcoal dark:text-gray-200 mt-0.5 line-clamp-2">{product.title}</h3>
-        <p className="text-sm text-light-charcoal dark:text-gray-400 mt-1 font-medium">${Number(product.price).toFixed(2)}</p>
+        <p className="text-sm text-light-charcoal dark:text-gray-400 mt-1 font-medium">{formatPrice(product.price, currency)}</p>
       </div>
     </Link>
   )

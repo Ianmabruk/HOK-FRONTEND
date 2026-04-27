@@ -1,11 +1,18 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCartStore } from '../store/cartStore'
+import { useCurrencyStore } from '../store/currencyStore'
 import { ordersApi } from '../services/api'
 import toast from 'react-hot-toast'
+import { formatFinishSelections } from '../utils/designStudio'
+import { formatPrice } from '../utils/currency'
+
+const FREE_SHIPPING_THRESHOLD = 500
+const STANDARD_SHIPPING_FEE = 49
 
 export default function Checkout() {
   const { items, total, clearCart } = useCartStore()
+  const currency = useCurrencyStore((s) => s.currency)
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
@@ -14,7 +21,7 @@ export default function Checkout() {
   })
 
   const subtotal = total()
-  const shipping = subtotal > 500 ? 0 : 49
+  const shipping = subtotal > FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING_FEE
   const grand = subtotal + shipping
 
   const handleSubmit = async (e) => {
@@ -22,7 +29,7 @@ export default function Checkout() {
     setLoading(true)
     try {
       await ordersApi.create({
-        items: items.map((i) => ({ product_id: i.id, quantity: i.quantity })),
+        items: items.map((i) => ({ product_id: i.id, quantity: i.quantity, customizations: i.customizations || null })),
         shipping_info: form,
         total_price: grand,
       })
@@ -112,7 +119,7 @@ export default function Checkout() {
             </div>
 
             <button type="submit" disabled={loading} className="btn-primary w-full disabled:opacity-50 mt-2">
-              {loading ? 'Placing Order...' : `Place Order — $${grand.toFixed(2)}`}
+              {loading ? 'Placing Order...' : `Place Order — ${formatPrice(grand, currency)}`}
             </button>
           </form>
 
@@ -122,26 +129,37 @@ export default function Checkout() {
               <h2 className="font-serif text-lg text-charcoal dark:text-gray-100 mb-5">Your Order</h2>
               <div className="space-y-3 mb-5">
                 {items.map((item) => (
-                  <div key={item.id} className="flex justify-between text-sm gap-2">
-                    <span className="text-light-charcoal dark:text-gray-400 truncate min-w-0">
-                      {item.title} <span className="text-gray-400">×{item.quantity}</span>
-                    </span>
-                    <span className="text-charcoal dark:text-gray-200 shrink-0">${(item.price * item.quantity).toFixed(2)}</span>
+                  <div key={item.itemKey} className="flex justify-between text-sm gap-2">
+                    <div className="text-light-charcoal dark:text-gray-400 min-w-0">
+                      <span className="truncate block">
+                        {item.title} <span className="text-gray-400">×{item.quantity}</span>
+                      </span>
+                      {item.customizations && (
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          {formatFinishSelections(item.customizations).map(([label, value]) => (
+                            <span key={label} className="inline-flex rounded-full bg-white dark:bg-gray-800 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-gray-500 dark:text-gray-300">
+                              {label}: {value}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-charcoal dark:text-gray-200 shrink-0">{formatPrice(item.price * item.quantity, currency)}</span>
                   </div>
                 ))}
               </div>
               <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2 text-sm">
                 <div className="flex justify-between text-light-charcoal dark:text-gray-400">
-                  <span>Subtotal</span><span className="text-charcoal dark:text-gray-200">${subtotal.toFixed(2)}</span>
+                  <span>Subtotal</span><span className="text-charcoal dark:text-gray-200">{formatPrice(subtotal, currency)}</span>
                 </div>
                 <div className="flex justify-between text-light-charcoal dark:text-gray-400">
                   <span>Shipping</span>
                   <span className={shipping === 0 ? 'text-sage dark:text-green-400' : 'text-charcoal dark:text-gray-200'}>
-                    {shipping === 0 ? 'Free' : `$${shipping}`}
+                    {shipping === 0 ? 'Free' : formatPrice(shipping, currency)}
                   </span>
                 </div>
                 <div className="flex justify-between font-semibold text-base pt-2 border-t border-gray-200 dark:border-gray-700 text-charcoal dark:text-gray-100">
-                  <span>Total</span><span>${grand.toFixed(2)}</span>
+                  <span>Total</span><span>{formatPrice(grand, currency)}</span>
                 </div>
               </div>
             </div>

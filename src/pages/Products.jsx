@@ -23,65 +23,8 @@ function SkeletonCard() {
   )
 }
 
-export default function Products() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const [products, setProducts] = useState([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [filtersOpen, setFiltersOpen] = useState(false)
-  const [localSearch, setLocalSearch] = useState('')
-  const debounceRef = useRef(null)
-
-  const category = searchParams.get('category') || ''
-  const search = searchParams.get('search') || ''
-  const sort = searchParams.get('sort') || 'newest'
-  const page = parseInt(searchParams.get('page') || '1', 10)
-  const minPrice = searchParams.get('min') || ''
-  const maxPrice = searchParams.get('max') || ''
-
-  // Keep local search input in sync with URL param
-  useEffect(() => { setLocalSearch(search) }, [search])
-
-  const setParam = useCallback((key, val) => {
-    setSearchParams((prev) => {
-      const n = new URLSearchParams(prev)
-      if (val) n.set(key, val); else n.delete(key)
-      if (key !== 'page') n.delete('page')
-      return n
-    })
-  }, [setSearchParams])
-
-  const handleSearchInput = (val) => {
-    setLocalSearch(val)
-    clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      setParam('search', val.trim())
-    }, 400)
-  }
-
-  useEffect(() => {
-    setLoading(true)
-    productsApi.getAll({
-      category: category || undefined,
-      search: search || undefined,
-      sort,
-      page,
-      limit: PER_PAGE,
-      price_min: minPrice || undefined,
-      price_max: maxPrice || undefined,
-    }).then((r) => {
-      setProducts(r.data.products || [])
-      setTotal(r.data.total || 0)
-    }).catch(() => {
-      setProducts([])
-      setTotal(0)
-    }).finally(() => setLoading(false))
-  }, [category, search, sort, page, minPrice, maxPrice])
-
-  const totalPages = Math.ceil(total / PER_PAGE)
-  const hasFilters = category || minPrice || maxPrice
-
-  const FilterPanel = () => (
+function FilterPanel({ category, minPrice, maxPrice, hasFilters, setParam, clearFilters }) {
+  return (
     <div className="space-y-6">
       <div>
         <h3 className="text-xs uppercase tracking-widest text-charcoal dark:text-gray-300 mb-3 font-semibold">Category</h3>
@@ -131,7 +74,7 @@ export default function Products() {
 
       {hasFilters && (
         <button
-          onClick={() => setSearchParams(new URLSearchParams())}
+          onClick={clearFilters}
           className="text-xs uppercase tracking-widest text-terracotta hover:underline"
           style={{ minHeight: 'auto' }}
         >
@@ -140,6 +83,86 @@ export default function Products() {
       )}
     </div>
   )
+}
+
+export default function Products() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [products, setProducts] = useState([])
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [localSearch, setLocalSearch] = useState('')
+  const debounceRef = useRef(null)
+
+  const category = searchParams.get('category') || ''
+  const search = searchParams.get('search') || ''
+  const sort = searchParams.get('sort') || 'newest'
+  const page = parseInt(searchParams.get('page') || '1', 10)
+  const minPrice = searchParams.get('min') || ''
+  const maxPrice = searchParams.get('max') || ''
+
+  // Keep local search input in sync with URL param
+  useEffect(() => {
+    const syncSearch = setTimeout(() => setLocalSearch(search), 0)
+    return () => clearTimeout(syncSearch)
+  }, [search])
+
+  const setParam = useCallback((key, val) => {
+    setSearchParams((prev) => {
+      const n = new URLSearchParams(prev)
+      if (val) n.set(key, val); else n.delete(key)
+      if (key !== 'page') n.delete('page')
+      return n
+    })
+  }, [setSearchParams])
+
+  const handleSearchInput = (val) => {
+    setLocalSearch(val)
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      setParam('search', val.trim())
+    }, 400)
+  }
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadProducts() {
+      setLoading(true)
+      try {
+        const r = await productsApi.getAll({
+          category: category || undefined,
+          search: search || undefined,
+          sort,
+          page,
+          limit: PER_PAGE,
+          price_min: minPrice || undefined,
+          price_max: maxPrice || undefined,
+        })
+        if (!cancelled) {
+          setProducts(r.data.products || [])
+          setTotal(r.data.total || 0)
+        }
+      } catch {
+        if (!cancelled) {
+          setProducts([])
+          setTotal(0)
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    loadProducts()
+
+    return () => {
+      cancelled = true
+    }
+  }, [category, search, sort, page, minPrice, maxPrice])
+
+  const totalPages = Math.ceil(total / PER_PAGE)
+  const hasFilters = category || minPrice || maxPrice
+  const clearFilters = useCallback(() => setSearchParams(new URLSearchParams()), [setSearchParams])
 
   return (
     <div className="bg-warm-white dark:bg-gray-950 min-h-screen">
@@ -177,7 +200,7 @@ export default function Products() {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* ── Sidebar – desktop ── */}
           <aside className="hidden lg:block w-56 shrink-0">
-            <FilterPanel />
+            <FilterPanel category={category} minPrice={minPrice} maxPrice={maxPrice} hasFilters={hasFilters} setParam={setParam} clearFilters={clearFilters} />
           </aside>
 
           {/* ── Main ── */}
@@ -221,7 +244,7 @@ export default function Products() {
               <div className="text-center py-20">
                 <p className="text-gray-400 text-lg mb-2">No products found</p>
                 <p className="text-sm text-gray-400">Try adjusting your filters or search term.</p>
-                <button onClick={() => setSearchParams(new URLSearchParams())} className="btn-outline mt-6 inline-flex">
+                <button onClick={clearFilters} className="btn-outline mt-6 inline-flex">
                   Clear filters
                 </button>
               </div>
@@ -276,7 +299,7 @@ export default function Products() {
               </button>
             </div>
             <div className="p-5">
-              <FilterPanel />
+              <FilterPanel category={category} minPrice={minPrice} maxPrice={maxPrice} hasFilters={hasFilters} setParam={setParam} clearFilters={clearFilters} />
             </div>
           </div>
         </div>

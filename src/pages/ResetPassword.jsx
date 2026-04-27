@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { FiCheckCircle, FiLock } from 'react-icons/fi'
 import { authApi } from '../services/api'
 import toast from 'react-hot-toast'
@@ -37,7 +37,6 @@ function StrengthBar({ password }) {
 export default function ResetPassword() {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') || ''
-  const navigate = useNavigate()
 
   const [form, setForm] = useState({ password: '', confirm: '' })
   const [loading, setLoading] = useState(false)

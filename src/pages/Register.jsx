@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { FiMail, FiCheckCircle } from 'react-icons/fi'
 import { authApi } from '../services/api'
-import { useAuthStore } from '../store/authStore'
+import { isAdminUser, normalizeAuthUser, useAuthStore } from '../store/authStore'
 import toast from 'react-hot-toast'
 
 export default function Register() {
@@ -23,11 +23,12 @@ export default function Register() {
     setLoading(true)
     try {
       const { data } = await authApi.register({ name: form.name, email: form.email, password: form.password })
-      setAuth(data.user, data.token)
-      setRegisteredName(data.user.name)
+      const user = normalizeAuthUser(data.user)
+      setAuth(user, data.token)
+      setRegisteredName(user.name)
       setRegistered(true)
       // Admins skip the "check your email" screen and go straight to dashboard
-      if (data.user.role === 'admin') {
+      if (isAdminUser(user)) {
         toast.success('Account created!')
         navigate('/admin')
       }

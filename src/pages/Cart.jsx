@@ -1,11 +1,18 @@
 import { Link } from 'react-router-dom'
 import { useCartStore } from '../store/cartStore'
+import { useCurrencyStore } from '../store/currencyStore'
 import { FiTrash2, FiMinus, FiPlus, FiArrowRight, FiShoppingBag } from 'react-icons/fi'
+import { formatFinishSelections } from '../utils/designStudio'
+import { formatPrice } from '../utils/currency'
+
+const FREE_SHIPPING_THRESHOLD = 500
+const STANDARD_SHIPPING_FEE = 49
 
 export default function Cart() {
   const { items, removeItem, updateQty, total } = useCartStore()
+  const currency = useCurrencyStore((s) => s.currency)
   const subtotal = total()
-  const shipping = subtotal > 500 ? 0 : 49
+  const shipping = subtotal > FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING_FEE
   const grand = subtotal + shipping
 
   if (items.length === 0) {
@@ -32,7 +39,7 @@ export default function Cart() {
           {/* Items list */}
           <div className="lg:col-span-2 space-y-5">
             {items.map((item) => (
-              <div key={item.id} className="flex gap-4 sm:gap-5 border-b border-gray-100 dark:border-gray-800 pb-5">
+              <div key={item.itemKey} className="flex gap-4 sm:gap-5 border-b border-gray-100 dark:border-gray-800 pb-5">
                 <Link to={`/products/${item.id}`} className="w-20 h-20 sm:w-24 sm:h-24 bg-cream dark:bg-gray-800 shrink-0 overflow-hidden rounded">
                   <img
                     src={item.image_url || `https://placehold.co/200x200/f5f0e8/2c2c2c?text=${encodeURIComponent(item.title)}`}
@@ -46,11 +53,20 @@ export default function Cart() {
                     {item.title}
                   </Link>
                   <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-0.5 capitalize">{item.category}</p>
-                  <p className="text-sm text-charcoal dark:text-gray-300 mt-1">${Number(item.price).toFixed(2)}</p>
+                  {item.customizations && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {formatFinishSelections(item.customizations).map(([label, value]) => (
+                        <span key={label} className="inline-flex rounded-full bg-cream dark:bg-gray-800 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-light-charcoal dark:text-gray-300">
+                          {label}: {value}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-sm text-charcoal dark:text-gray-300 mt-1">{formatPrice(item.price, currency)}</p>
                   <div className="flex items-center gap-3 mt-2">
                     <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded">
                       <button
-                        onClick={() => updateQty(item.id, item.quantity - 1)}
+                        onClick={() => updateQty(item.itemKey, item.quantity - 1)}
                         className="flex items-center justify-center w-9 h-9 hover:bg-gray-50 dark:hover:bg-gray-800 text-charcoal dark:text-gray-300"
                         aria-label="Decrease"
                       >
@@ -58,7 +74,7 @@ export default function Cart() {
                       </button>
                       <span className="px-3 text-sm text-charcoal dark:text-gray-200 min-w-[2rem] text-center">{item.quantity}</span>
                       <button
-                        onClick={() => updateQty(item.id, item.quantity + 1)}
+                        onClick={() => updateQty(item.itemKey, item.quantity + 1)}
                         className="flex items-center justify-center w-9 h-9 hover:bg-gray-50 dark:hover:bg-gray-800 text-charcoal dark:text-gray-300"
                         aria-label="Increase"
                       >
@@ -66,7 +82,7 @@ export default function Cart() {
                       </button>
                     </div>
                     <button
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => removeItem(item.itemKey)}
                       className="text-gray-400 hover:text-red-500 transition-colors p-1"
                       aria-label="Remove item"
                     >
@@ -75,7 +91,7 @@ export default function Cart() {
                   </div>
                 </div>
                 <p className="font-medium text-sm text-charcoal dark:text-gray-200 shrink-0 pt-1">
-                  ${(item.price * item.quantity).toFixed(2)}
+                  {formatPrice(item.price * item.quantity, currency)}
                 </p>
               </div>
             ))}
@@ -88,22 +104,22 @@ export default function Cart() {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between text-light-charcoal dark:text-gray-400">
                   <span>Subtotal</span>
-                  <span className="text-charcoal dark:text-gray-200">${subtotal.toFixed(2)}</span>
+                  <span className="text-charcoal dark:text-gray-200">{formatPrice(subtotal, currency)}</span>
                 </div>
                 <div className="flex justify-between text-light-charcoal dark:text-gray-400">
                   <span>Shipping</span>
                   <span className={shipping === 0 ? 'text-sage dark:text-green-400' : 'text-charcoal dark:text-gray-200'}>
-                    {shipping === 0 ? 'Free' : `$${shipping.toFixed(2)}`}
+                    {shipping === 0 ? 'Free' : formatPrice(shipping, currency)}
                   </span>
                 </div>
-                {subtotal < 500 && (
+                {subtotal < FREE_SHIPPING_THRESHOLD && (
                   <p className="text-[11px] text-gray-400 bg-white dark:bg-gray-800 rounded p-2">
-                    Add ${(500 - subtotal).toFixed(2)} more for free shipping
+                    Add {formatPrice(FREE_SHIPPING_THRESHOLD - subtotal, currency)} more for free shipping
                   </p>
                 )}
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-3 flex justify-between font-semibold text-base text-charcoal dark:text-gray-100">
                   <span>Total</span>
-                  <span>${grand.toFixed(2)}</span>
+                  <span>{formatPrice(grand, currency)}</span>
                 </div>
               </div>
               <Link to="/checkout" className="btn-primary w-full mt-6 flex items-center justify-center gap-2">

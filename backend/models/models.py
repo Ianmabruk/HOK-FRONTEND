@@ -1,5 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from decimal import Decimal
 
 db = SQLAlchemy()
 
@@ -115,11 +116,19 @@ class OrderItem(db.Model):
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
+    unit_price = db.Column(db.Numeric(10, 2), nullable=True)
+    product_title = db.Column(db.String(255), nullable=True)
+    product_image = db.Column(db.Text, nullable=True)
+    customizations = db.Column(db.JSON, nullable=True)
     product = db.relationship('Product')
 
     def to_dict(self):
         return {'id': self.id, 'product_id': self.product_id,
                 'quantity': self.quantity,
+                'unit_price': float(self.unit_price) if self.unit_price is not None else None,
+                'product_title': self.product_title,
+                'product_image': self.product_image,
+                'customizations': self.customizations,
                 'product': self.product.to_dict() if self.product else None}
 
 

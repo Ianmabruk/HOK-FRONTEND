@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { FiMessageCircle, FiX, FiSend, FiShoppingBag } from 'react-icons/fi'
 import { io } from 'socket.io-client'
 import { useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
+import { useCurrencyStore } from '../../store/currencyStore'
 import { productsApi } from '../../services/api'
 import { CONSULTATION_CHAT_EVENT } from '../../utils/chatEvents'
+import { formatPrice } from '../../utils/currency'
 import { fallbackImageFor, getPrimaryProductImage } from '../../utils/productMedia'
 
 let socket
@@ -18,9 +20,10 @@ export default function LiveChat() {
   const inputRef = useRef(null)
   const pendingMessageRef = useRef(null)
   const { user, token } = useAuthStore()
+  const currency = useCurrencyStore((s) => s.currency)
   const location = useLocation()
 
-  const buildMessage = (messageText, currentProduct, includeProductContext) => ({
+  const buildMessage = useCallback((messageText, currentProduct, includeProductContext) => ({
     text: messageText.trim(),
     sender: user?.name || 'Guest',
     timestamp: new Date().toISOString(),
@@ -30,7 +33,7 @@ export default function LiveChat() {
       product_price: currentProduct.price,
       product_image: getPrimaryProductImage(currentProduct),
     } : {}),
-  })
+  }), [user?.name])
 
   const queueOrEmitMessage = (message) => {
     if (socket?.connected) {
@@ -42,12 +45,26 @@ export default function LiveChat() {
 
   // Detect if we're on a product page and fetch its details
   useEffect(() => {
+    let cancelled = false
     const match = location.pathname.match(/^\/products\/(\d+)$/)
-    if (match) {
-      const pid = match[1]
-      productsApi.getById(pid).then((r) => setProduct(r.data)).catch(() => setProduct(null))
-    } else {
-      setProduct(null)
+    async function loadProductContext() {
+      if (!match) {
+        setProduct(null)
+        return
+      }
+
+      try {
+        const r = await productsApi.getById(match[1])
+        if (!cancelled) setProduct(r.data)
+      } catch {
+        if (!cancelled) setProduct(null)
+      }
+    }
+
+    loadProductContext()
+
+    return () => {
+      cancelled = true
     }
   }, [location.pathname])
 
@@ -72,7 +89,7 @@ export default function LiveChat() {
       socket?.disconnect()
       socket = null
     }
-  }, [open])
+  }, [open, token])
 
   useEffect(() => {
     const handleConsultationRequest = (event) => {
@@ -101,7 +118,7 @@ export default function LiveChat() {
 
     window.addEventListener(CONSULTATION_CHAT_EVENT, handleConsultationRequest)
     return () => window.removeEventListener(CONSULTATION_CHAT_EVENT, handleConsultationRequest)
-  }, [user?.name])
+  }, [buildMessage, user?.name])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -162,7 +179,7 @@ export default function LiveChat() {
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] uppercase tracking-wider text-terracotta">Asking about</p>
                 <p className="text-xs font-medium text-charcoal dark:text-gray-200 truncate">{product.title}</p>
-                <p className="text-xs text-gray-400">${Number(product.price).toFixed(2)}</p>
+                <p className="text-xs text-gray-400">{formatPrice(product.price, currency)}</p>
               </div>
             </div>
           )}

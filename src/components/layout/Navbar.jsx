@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { FiShoppingBag, FiMenu, FiX, FiSearch, FiUser, FiHeart } from 'react-icons/fi'
+import { FiShoppingBag, FiMenu, FiX, FiSearch, FiUser, FiHeart, FiSettings } from 'react-icons/fi'
 import { useCartStore } from '../../store/cartStore'
-import { useAuthStore } from '../../store/authStore'
+import { isAdminUser, useAuthStore } from '../../store/authStore'
+import { useCurrencyStore } from '../../store/currencyStore'
 import { useWishlistStore } from '../../store/wishlistStore'
+import { CURRENCIES } from '../../utils/currency'
 
 const NAV_LINKS = [
   { label: 'Shop All', to: '/products' },
@@ -18,13 +20,12 @@ export default function Navbar() {
   const [search, setSearch] = useState('')
   const [scrolled, setScrolled] = useState(false)
   const navigate = useNavigate()
-  const { pathname } = useLocation()
+  useLocation()
   const count = useCartStore((s) => s.count())
   const wishlistCount = useWishlistStore((s) => s.count())
   const { user, logout } = useAuthStore()
-
-  // Close menu on route change
-  useEffect(() => { setOpen(false) }, [pathname])
+  const { currency, setCurrency } = useCurrencyStore()
+  const closeMenu = () => setOpen(false)
 
   // Elevate navbar on scroll
   useEffect(() => {
@@ -58,6 +59,7 @@ export default function Navbar() {
                 <Link
                   key={l.label}
                   to={l.to}
+                  onClick={closeMenu}
                   className="text-xs font-sans uppercase tracking-widest text-light-charcoal dark:text-gray-400 hover:text-terracotta dark:hover:text-terracotta transition-colors whitespace-nowrap"
                 >
                   {l.label}
@@ -81,10 +83,46 @@ export default function Navbar() {
                 </button>
               </form>
 
+              <label className="hidden md:flex items-center">
+                <span className="sr-only">Select currency</span>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="bg-transparent text-[11px] uppercase tracking-[0.18em] text-light-charcoal dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded px-2 py-1.5 outline-none"
+                >
+                  {Object.values(CURRENCIES).map((option) => (
+                    <option key={option.code} value={option.code} className="text-charcoal">
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
               {user ? (
                 <div className="hidden md:flex items-center gap-3">
+                  <Link
+                    to="/settings"
+                    onClick={closeMenu}
+                    className="text-xs uppercase tracking-widest text-light-charcoal dark:text-gray-400 hover:text-terracotta"
+                    style={{ minHeight: 'auto' }}
+                  >
+                    Settings
+                  </Link>
+                  {isAdminUser(user) && (
+                    <Link
+                      to="/admin"
+                      onClick={closeMenu}
+                      className="text-xs uppercase tracking-widest text-light-charcoal dark:text-gray-400 hover:text-terracotta"
+                      style={{ minHeight: 'auto' }}
+                    >
+                      Admin
+                    </Link>
+                  )}
                   <button
-                    onClick={logout}
+                    onClick={() => {
+                      closeMenu()
+                      logout()
+                    }}
                     className="text-xs uppercase tracking-widest text-light-charcoal dark:text-gray-400 hover:text-terracotta"
                     style={{ minHeight: 'auto' }}
                   >
@@ -92,12 +130,12 @@ export default function Navbar() {
                   </button>
                 </div>
               ) : (
-                <Link to="/login" className="hidden md:flex items-center justify-center w-9 h-9">
+                <Link to="/login" onClick={closeMenu} className="hidden md:flex items-center justify-center w-9 h-9">
                   <FiUser className="text-charcoal dark:text-gray-300 text-lg" />
                 </Link>
               )}
 
-              <Link to="/cart" className="relative flex items-center justify-center w-9 h-9">
+              <Link to="/cart" onClick={closeMenu} className="relative flex items-center justify-center w-9 h-9">
                 <FiShoppingBag className="text-charcoal dark:text-gray-300 text-xl" />
                 {count > 0 && (
                   <span className="absolute -top-1 -right-1 bg-terracotta text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-medium">
@@ -107,7 +145,7 @@ export default function Navbar() {
               </Link>
 
               {/* Wishlist */}
-              <Link to="/wishlist" className="relative hidden sm:flex items-center justify-center w-9 h-9">
+              <Link to="/wishlist" onClick={closeMenu} className="relative hidden sm:flex items-center justify-center w-9 h-9">
                 <FiHeart className="text-charcoal dark:text-gray-300 text-xl" />
                 {wishlistCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-terracotta text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-medium">
@@ -150,6 +188,7 @@ export default function Navbar() {
               <Link
                 key={l.label}
                 to={l.to}
+                onClick={closeMenu}
                 className="flex items-center h-11 text-sm uppercase tracking-widest text-light-charcoal dark:text-gray-400 hover:text-terracotta dark:hover:text-terracotta transition-colors"
               >
                 {l.label}
@@ -157,23 +196,48 @@ export default function Navbar() {
             ))}
             <Link
               to="/wishlist"
+              onClick={closeMenu}
               className="flex items-center h-11 text-sm uppercase tracking-widest text-light-charcoal dark:text-gray-400 hover:text-terracotta dark:hover:text-terracotta transition-colors"
             >
               Wishlist {wishlistCount > 0 && <span className="ml-1.5 bg-terracotta text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">{wishlistCount}</span>}
             </Link>
 
+            <div className="pt-2">
+              <label className="text-[11px] uppercase tracking-[0.18em] text-gray-400 block mb-2">Currency</label>
+              <select
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="w-full bg-transparent border border-gray-200 dark:border-gray-700 rounded px-3 text-sm text-charcoal dark:text-gray-200 outline-none"
+                style={{ minHeight: '44px' }}
+              >
+                {Object.values(CURRENCIES).map((option) => (
+                  <option key={option.code} value={option.code} className="text-charcoal">
+                    {option.name} ({option.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="border-t border-gray-100 dark:border-gray-800 pt-4 mt-2 space-y-1">
               {user ? (
                 <>
                   <p className="text-xs text-gray-400 mb-2">Signed in as <span className="text-charcoal dark:text-gray-200">{user.name}</span></p>
-                  <button onClick={logout} className="flex items-center h-11 text-sm uppercase tracking-widest text-light-charcoal dark:text-gray-400 hover:text-terracotta w-full text-left">
+                  <Link to="/settings" onClick={closeMenu} className="flex items-center gap-2 h-11 text-sm uppercase tracking-widest text-light-charcoal dark:text-gray-400">
+                    <FiSettings size={14} /> Settings
+                  </Link>
+                  {isAdminUser(user) && (
+                    <Link to="/admin" onClick={closeMenu} className="flex items-center h-11 text-sm uppercase tracking-widest text-terracotta">
+                      Admin Dashboard
+                    </Link>
+                  )}
+                  <button onClick={() => { closeMenu(); logout() }} className="flex items-center h-11 text-sm uppercase tracking-widest text-light-charcoal dark:text-gray-400 hover:text-terracotta w-full text-left">
                     Logout
                   </button>
                 </>
               ) : (
                 <>
-                  <Link to="/login" className="flex items-center h-11 text-sm uppercase tracking-widest text-light-charcoal dark:text-gray-400">Sign In</Link>
-                  <Link to="/register" className="flex items-center h-11 text-sm uppercase tracking-widest text-terracotta">Create Account</Link>
+                  <Link to="/login" onClick={closeMenu} className="flex items-center h-11 text-sm uppercase tracking-widest text-light-charcoal dark:text-gray-400">Sign In</Link>
+                  <Link to="/register" onClick={closeMenu} className="flex items-center h-11 text-sm uppercase tracking-widest text-terracotta">Create Account</Link>
                 </>
               )}
             </div>

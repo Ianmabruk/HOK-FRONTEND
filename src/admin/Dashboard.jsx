@@ -3,6 +3,8 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { FiDollarSign, FiUsers, FiShoppingCart, FiPackage } from 'react-icons/fi'
 import { onAdminDataChanged } from './adminEvents'
 import { ordersApi, usersApi, productsApi } from '../services/api'
+import { useCurrencyStore } from '../store/currencyStore'
+import { formatPrice } from '../utils/currency'
 
 const MOCK_REVENUE = [
   { month: 'Jan', revenue: 4200 }, { month: 'Feb', revenue: 6800 },
@@ -26,6 +28,7 @@ function StatCard({ icon: Icon, label, value, color }) {
 
 export default function Dashboard() {
   const [stats, setStats] = useState({ users: 0, orders: 0, products: 0, revenue: 0 })
+  const currency = useCurrencyStore((s) => s.currency)
 
   const loadStats = () => {
     Promise.allSettled([usersApi.getAll(), ordersApi.getAll(), productsApi.getAll({})])
@@ -47,7 +50,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={FiDollarSign} label="Total Revenue" value={`$${stats.revenue.toLocaleString()}`} color="bg-terracotta" />
+        <StatCard icon={FiDollarSign} label="Total Revenue" value={formatPrice(stats.revenue, currency)} color="bg-terracotta" />
         <StatCard icon={FiUsers} label="Users" value={stats.users} color="bg-sage" />
         <StatCard icon={FiShoppingCart} label="Orders" value={stats.orders} color="bg-charcoal" />
         <StatCard icon={FiPackage} label="Products" value={stats.products} color="bg-soft-gold" />

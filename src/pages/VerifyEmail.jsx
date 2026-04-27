@@ -2,22 +2,18 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { FiCheckCircle, FiXCircle, FiLoader } from 'react-icons/fi'
 import { authApi } from '../services/api'
-import { useAuthStore } from '../store/authStore'
+import { isAdminUser, useAuthStore } from '../store/authStore'
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') || ''
-  const [status, setStatus] = useState('loading')   // 'loading' | 'success' | 'error'
-  const [message, setMessage] = useState('')
+  const [status, setStatus] = useState(() => (token ? 'loading' : 'error'))   // 'loading' | 'success' | 'error'
+  const [message, setMessage] = useState(() => (token ? '' : 'No verification token found in the link.'))
   const updateUser = useAuthStore((s) => s.setAuth)
   const { user, token: jwt } = useAuthStore()
 
   useEffect(() => {
-    if (!token) {
-      setStatus('error')
-      setMessage('No verification token found in the link.')
-      return
-    }
+    if (!token) return
 
     authApi.verifyEmail(token)
       .then(({ data }) => {
@@ -56,7 +52,7 @@ export default function VerifyEmail() {
               <h1 className="font-serif text-2xl text-charcoal dark:text-gray-100 mb-2">Email verified!</h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{message}</p>
               <Link
-                to={user?.role === 'admin' ? '/admin' : '/'}
+                to={isAdminUser(user) ? '/admin' : '/'}
                 className="btn-primary inline-flex"
               >
                 {user ? 'Go to Dashboard' : 'Sign In'}

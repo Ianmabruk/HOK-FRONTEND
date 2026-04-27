@@ -11,15 +11,37 @@ export default function Wishlist() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (ids.length === 0) { setLoading(false); return }
-    // Fetch all products and filter by wishlist ids
-    productsApi.getAll({ limit: 100 })
-      .then((r) => {
-        const all = r.data.products || []
-        setProducts(all.filter((p) => ids.includes(p.id)))
-      })
-      .catch(() => setProducts([]))
-      .finally(() => setLoading(false))
+    let cancelled = false
+
+    async function loadWishlist() {
+      if (ids.length === 0) {
+        if (!cancelled) {
+          setProducts([])
+          setLoading(false)
+        }
+        return
+      }
+
+      setLoading(true)
+
+      try {
+        const r = await productsApi.getAll({ limit: 100 })
+        if (!cancelled) {
+          const all = r.data.products || []
+          setProducts(all.filter((p) => ids.includes(p.id)))
+        }
+      } catch {
+        if (!cancelled) setProducts([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    loadWishlist()
+
+    return () => {
+      cancelled = true
+    }
   }, [ids])
 
   return (

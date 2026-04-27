@@ -3,6 +3,8 @@ import { productsApi, vendorsApi } from '../services/api'
 import { emitAdminDataChanged } from './adminEvents'
 import { FiPlus, FiEdit2, FiTrash2, FiX, FiVideo } from 'react-icons/fi'
 import toast from 'react-hot-toast'
+import { useCurrencyStore } from '../store/currencyStore'
+import { formatPrice } from '../utils/currency'
 import { fallbackImageFor, getPrimaryProductImage, parseImageList, serializeImageList } from '../utils/productMedia'
 
 const EMPTY = { title: '', description: '', price: '', stock: '', category: '', image_url: '', video_url: '', vendor_id: '' }
@@ -24,6 +26,7 @@ function normalizeProductForm(form) {
 }
 
 export default function AdminProducts() {
+  const currency = useCurrencyStore((s) => s.currency)
   const [products, setProducts] = useState([])
   const [vendors, setVendors] = useState([])
   const [modal, setModal] = useState(false)
@@ -178,7 +181,7 @@ export default function AdminProducts() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-gray-500 capitalize">{p.category?.replace('-', ' ')}</td>
-                <td className="px-4 py-3">${Number(p.price).toFixed(2)}</td>
+                <td className="px-4 py-3">{formatPrice(p.price, currency)}</td>
                 <td className="px-4 py-3">
                   <span className={`px-2 py-0.5 rounded text-xs ${p.stock < 5 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>
                     {p.stock}

@@ -3,8 +3,11 @@ import { useParams, Link } from 'react-router-dom'
 import { FiShoppingBag, FiMinus, FiPlus, FiChevronRight, FiPlay, FiMessageCircle, FiX } from 'react-icons/fi'
 import { productsApi } from '../services/api'
 import { useCartStore } from '../store/cartStore'
+import { useCurrencyStore } from '../store/currencyStore'
 import toast from 'react-hot-toast'
 import { requestConsultationChat } from '../utils/chatEvents'
+import { DEFAULT_KITCHEN_FINISHES, findFinishOption, formatFinishSelections, KITCHEN_FINISH_OPTIONS } from '../utils/designStudio'
+import { formatPrice } from '../utils/currency'
 import { fallbackImageFor, getPrimaryProductImage, normalizeProductGallery } from '../utils/productMedia'
 
 export default function ProductDetail() {
@@ -17,32 +20,62 @@ export default function ProductDetail() {
   const [consultationOpen, setConsultationOpen] = useState(false)
   const [consultationIssue, setConsultationIssue] = useState('')
   const [related, setRelated] = useState([])
+  const [kitchenFinishes, setKitchenFinishes] = useState(DEFAULT_KITCHEN_FINISHES)
   const addItem = useCartStore((s) => s.addItem)
+  const currency = useCurrencyStore((s) => s.currency)
 
   useEffect(() => {
-    setLoading(true)
-    productsApi.getById(id).then((r) => {
-      setProduct(r.data)
-      if (r.data.category) {
-        productsApi.getAll({ category: r.data.category, limit: 4 }).then((res) => {
-          setRelated((res.data.products || []).filter((p) => p.id !== r.data.id).slice(0, 4))
-        }).catch(() => {})
+    let cancelled = false
+
+    async function loadProduct() {
+      setLoading(true)
+
+      try {
+        const { data } = await productsApi.getById(id)
+        if (cancelled) return
+
+        setProduct(data)
+        setActiveImg(0)
+        setShowVideo(false)
+        setConsultationOpen(false)
+        setConsultationIssue('')
+        setKitchenFinishes(DEFAULT_KITCHEN_FINISHES)
+
+        if (data.category) {
+          try {
+            const res = await productsApi.getAll({ category: data.category, limit: 4 })
+            if (!cancelled) {
+              setRelated((res.data.products || []).filter((p) => p.id !== data.id).slice(0, 4))
+            }
+          } catch {
+            if (!cancelled) setRelated([])
+          }
+        } else {
+          setRelated([])
+        }
+      } catch {
+        if (!cancelled) {
+          setProduct(null)
+          setRelated([])
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
       }
-    }).catch(() => {
-      setProduct(null)
-    }).finally(() => setLoading(false))
-  }, [id])
+    }
 
-  useEffect(() => {
-    setActiveImg(0)
-    setShowVideo(false)
-    setConsultationOpen(false)
-    setConsultationIssue('')
-  }, [product?.id])
+    loadProduct()
+
+    return () => {
+      cancelled = true
+    }
+  }, [id])
 
   const handleAdd = () => {
     if (!product) return
-    for (let i = 0; i < qty; i++) addItem(product)
+    const customizations = product.category === 'kitchen'
+      ? { designType: 'kitchen-finish', ...kitchenFinishes }
+      : null
+    for (let i = 0; i < qty; i++) addItem(product, customizations)
     toast.success(`${qty}× ${product.title} added to cart`)
   }
 
@@ -87,6 +120,12 @@ export default function ProductDetail() {
 
   const images = normalizeProductGallery(product)
   const hasVideo = Boolean(product.video_url)
+  const isKitchenProduct = product.category === 'kitchen'
+  const kitchenPreview = {
+    counterColor: findFinishOption('counterColor', kitchenFinishes.counterColor)?.hex || '#E8E0D4',
+    wallColor: findFinishOption('wallColor', kitchenFinishes.wallColor)?.hex || '#F4EBDD',
+    floorColor: findFinishOption('floorColor', kitchenFinishes.floorColor)?.hex || '#8A6248',
+  }
 
   return (
     <div className="bg-warm-white dark:bg-gray-950 min-h-screen">
@@ -167,7 +206,7 @@ export default function ProductDetail() {
               {product.title}
             </h1>
             <p className="text-2xl sm:text-3xl font-medium text-charcoal dark:text-gray-200 mb-2">
-              ${Number(product.price).toFixed(2)}
+              {formatPrice(product.price, currency)}
             </p>
             <div className="flex flex-wrap items-center gap-2 mb-4">
               <span className="inline-flex items-center rounded-full bg-cream dark:bg-gray-800 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-charcoal dark:text-gray-300">
@@ -231,6 +270,57 @@ export default function ProductDetail() {
               Book a Design Consultation
             </button>
 
+            {isKitchenProduct && (
+              <div className="mt-8 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden bg-white dark:bg-gray-900">
+                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-terracotta mb-2">Kitchen Finish Studio</p>
+                  <h2 className="font-serif text-xl text-charcoal dark:text-gray-100">Preview your counter, wall, and floor colors</h2>
+                </div>
+                <div className="p-5 space-y-5">
+                  <div className="rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
+                    <div className="h-24" style={{ backgroundColor: kitchenPreview.wallColor }} />
+                    <div className="h-10" style={{ backgroundColor: kitchenPreview.counterColor }} />
+                    <div className="h-20 bg-[linear-gradient(135deg,rgba(255,255,255,0.12)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.12)_50%,rgba(255,255,255,0.12)_75%,transparent_75%,transparent)] bg-[length:18px_18px]" style={{ backgroundColor: kitchenPreview.floorColor }} />
+                  </div>
+
+                  {Object.entries(KITCHEN_FINISH_OPTIONS).map(([field, options]) => (
+                    <div key={field}>
+                      <p className="text-xs uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400 mb-3">
+                        {field === 'counterColor' ? 'Counter' : field === 'wallColor' ? 'Wall' : 'Floor'} finish
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {options.map((option) => {
+                          const active = kitchenFinishes[field] === option.value
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => setKitchenFinishes((prev) => ({ ...prev, [field]: option.value }))}
+                              className={`rounded-xl border px-3 py-3 text-left transition-colors ${active ? 'border-charcoal dark:border-gray-200 bg-cream dark:bg-gray-800' : 'border-gray-200 dark:border-gray-700 hover:border-terracotta/60'}`}
+                            >
+                              <span className="inline-flex h-4 w-4 rounded-full border border-black/10 mb-3" style={{ backgroundColor: option.hex }} />
+                              <p className="text-sm font-medium text-charcoal dark:text-gray-100">{option.label}</p>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="rounded-xl bg-cream dark:bg-gray-800 px-4 py-3">
+                    <p className="text-xs uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400 mb-2">Selected combination</p>
+                    <div className="flex flex-wrap gap-2">
+                      {formatFinishSelections(kitchenFinishes).map(([label, value]) => (
+                        <span key={label} className="inline-flex items-center rounded-full bg-white dark:bg-gray-900 px-3 py-1 text-xs text-charcoal dark:text-gray-200">
+                          {label}: {value}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Product meta */}
             {(product.vendor_id || product.category) && (
               <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 space-y-2">
@@ -262,7 +352,7 @@ export default function ProductDetail() {
                     />
                   </div>
                   <p className="font-serif text-sm mt-2 text-charcoal dark:text-gray-200 line-clamp-1">{p.title}</p>
-                  <p className="text-sm text-gray-400 mt-0.5">${Number(p.price).toFixed(2)}</p>
+                  <p className="text-sm text-gray-400 mt-0.5">{formatPrice(p.price, currency)}</p>
                 </Link>
               ))}
             </div>
@@ -288,7 +378,7 @@ export default function ProductDetail() {
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.18em] text-terracotta">Consultation request</p>
                   <p className="font-medium text-charcoal dark:text-gray-200">{product.title}</p>
-                  <p className="text-sm text-gray-400">${Number(product.price).toFixed(2)}</p>
+                  <p className="text-sm text-gray-400">{formatPrice(product.price, currency)}</p>
                 </div>
               </div>
               <div>

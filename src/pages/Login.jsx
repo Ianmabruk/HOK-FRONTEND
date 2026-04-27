@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { FiAlertCircle } from 'react-icons/fi'
 import { authApi } from '../services/api'
-import { useAuthStore } from '../store/authStore'
+import { isAdminUser, normalizeAuthUser, useAuthStore } from '../store/authStore'
 import toast from 'react-hot-toast'
 
 export default function Login() {
@@ -21,15 +21,16 @@ export default function Login() {
     setUnverified(false)
     try {
       const { data } = await authApi.login(form)
-      setAuth(data.user, data.token)
+      const user = normalizeAuthUser(data.user)
+      setAuth(user, data.token)
       // Warn (but don't block) if email not yet verified
-      if (!data.user.email_verified) {
+      if (!user.email_verified) {
         setUnverified(true)
         toast('Please verify your email to unlock all features.', { icon: '📧' })
       } else {
         toast.success('Welcome back!')
       }
-      navigate(data.user.role === 'admin' ? '/admin' : '/')
+      navigate(isAdminUser(user) ? '/admin' : '/')
     } catch (err) {
       toast.error(err.userMessage || err.response?.data?.message || 'Invalid email or password')
     } finally {
