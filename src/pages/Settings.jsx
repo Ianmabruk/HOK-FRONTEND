@@ -1,11 +1,33 @@
-import { FiMoon, FiSun, FiSliders } from 'react-icons/fi'
-import { useCurrencyStore } from '../store/currencyStore'
+import { useEffect, useState } from 'react'
+import { FiCalendar, FiMoon, FiShoppingCart, FiSliders, FiSun, FiUser } from 'react-icons/fi'
+import { ordersApi } from '../services/api'
+import { useAuthStore } from '../store/authStore'
 import { SITE_PALETTES, useThemeStore } from '../store/themeStore'
-import { CURRENCIES } from '../utils/currency'
 
 export default function Settings() {
-  const { currency, setCurrency } = useCurrencyStore()
+  const { user } = useAuthStore()
   const { themeMode, setThemeMode, sitePalette, setSitePalette } = useThemeStore()
+  const [orderCount, setOrderCount] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+
+    ordersApi.getAll()
+      .then((response) => {
+        if (!cancelled) setOrderCount((response.data || []).length)
+      })
+      .catch(() => {
+        if (!cancelled) setOrderCount(0)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const now = new Date()
+  const formattedDate = now.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+  const formattedDay = now.toLocaleDateString(undefined, { weekday: 'long' })
 
   return (
     <div className="bg-warm-white dark:bg-gray-950 min-h-screen">
@@ -15,9 +37,37 @@ export default function Settings() {
           <h1 className="font-serif text-3xl sm:text-4xl text-charcoal dark:text-gray-100">Settings Dashboard</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-3 max-w-2xl">
             Keep the original cream-and-brown look by default, switch dark mode on whenever you want,
-            and set how prices are displayed across the storefront.
+            and review your account details and order activity in one place.
           </p>
         </div>
+
+        <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 sm:p-8">
+          <div className="flex items-center gap-3 mb-5">
+            <FiUser className="text-terracotta" size={18} />
+            <div>
+              <h2 className="font-medium text-charcoal dark:text-gray-100">Account Summary</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Your credentials, order totals, and today&apos;s date.</p>
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: 'Name', value: user?.name || 'Guest', icon: FiUser },
+              { label: 'Email', value: user?.email || 'No email available', icon: FiUser },
+              { label: 'Orders Made', value: String(orderCount), icon: FiShoppingCart },
+              { label: formattedDay, value: formattedDate, icon: FiCalendar },
+            ].map(({ label, value, icon: Icon }) => (
+              <div key={label} className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-cream dark:bg-gray-800 p-4">
+                <Icon className="text-terracotta mb-3" size={16} />
+                <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">{label}</p>
+                <p className="text-sm font-medium text-charcoal dark:text-gray-100 mt-2 break-words">{value}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-4 py-3">
+            <p className="text-xs uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">Role</p>
+            <p className="text-sm text-charcoal dark:text-gray-100 mt-2 capitalize">{user?.role || 'customer'}</p>
+          </div>
+        </section>
 
         <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 sm:p-8">
           <div className="flex items-center gap-3 mb-5">
@@ -78,20 +128,6 @@ export default function Settings() {
               )
             })}
           </div>
-        </section>
-
-        <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 sm:p-8">
-          <h2 className="font-medium text-charcoal dark:text-gray-100">Currency Display</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-5">This changes how prices are shown across products, cart, checkout, and admin totals.</p>
-          <select
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
-            className="input max-w-sm"
-          >
-            {Object.values(CURRENCIES).map((option) => (
-              <option key={option.code} value={option.code}>{option.name} ({option.code})</option>
-            ))}
-          </select>
         </section>
       </div>
     </div>

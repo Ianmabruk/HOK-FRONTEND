@@ -3,9 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { FiShoppingBag, FiMenu, FiX, FiSearch, FiUser, FiHeart, FiSettings } from 'react-icons/fi'
 import { useCartStore } from '../../store/cartStore'
 import { isAdminUser, useAuthStore } from '../../store/authStore'
-import { useCurrencyStore } from '../../store/currencyStore'
 import { useWishlistStore } from '../../store/wishlistStore'
-import { CURRENCIES } from '../../utils/currency'
 
 const NAV_LINKS = [
   { label: 'Shop All', to: '/products' },
@@ -24,7 +22,6 @@ export default function Navbar() {
   const count = useCartStore((s) => s.count())
   const wishlistCount = useWishlistStore((s) => s.count())
   const { user, logout } = useAuthStore()
-  const { currency, setCurrency } = useCurrencyStore()
   const closeMenu = () => setOpen(false)
 
   // Elevate navbar on scroll
@@ -82,21 +79,6 @@ export default function Navbar() {
                   <FiSearch className="text-charcoal dark:text-gray-300" size={15} />
                 </button>
               </form>
-
-              <label className="hidden md:flex items-center">
-                <span className="sr-only">Select currency</span>
-                <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                  className="bg-transparent text-[11px] uppercase tracking-[0.18em] text-light-charcoal dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded px-2 py-1.5 outline-none"
-                >
-                  {Object.values(CURRENCIES).map((option) => (
-                    <option key={option.code} value={option.code} className="text-charcoal">
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
 
               {user ? (
                 <div className="hidden md:flex items-center gap-3">
@@ -201,22 +183,6 @@ export default function Navbar() {
             >
               Wishlist {wishlistCount > 0 && <span className="ml-1.5 bg-terracotta text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">{wishlistCount}</span>}
             </Link>
-
-            <div className="pt-2">
-              <label className="text-[11px] uppercase tracking-[0.18em] text-gray-400 block mb-2">Currency</label>
-              <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                className="w-full bg-transparent border border-gray-200 dark:border-gray-700 rounded px-3 text-sm text-charcoal dark:text-gray-200 outline-none"
-                style={{ minHeight: '44px' }}
-              >
-                {Object.values(CURRENCIES).map((option) => (
-                  <option key={option.code} value={option.code} className="text-charcoal">
-                    {option.name} ({option.code})
-                  </option>
-                ))}
-              </select>
-            </div>
 
             <div className="border-t border-gray-100 dark:border-gray-800 pt-4 mt-2 space-y-1">
               {user ? (
