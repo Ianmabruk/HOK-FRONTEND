@@ -7,9 +7,9 @@ import { useWishlistStore } from '../../store/wishlistStore'
 
 const NAV_LINKS = [
   { label: 'Shop All', to: '/products' },
+  { label: 'Portfolio', to: '/portfolio' },
+  { label: 'Before & After', to: '/before-after' },
   { label: 'Living Room', to: '/products?category=living-room' },
-  { label: 'Kitchen', to: '/products?category=kitchen' },
-  { label: 'Office', to: '/products?category=office' },
   { label: 'Bedroom', to: '/products?category=bedroom' },
 ]
 

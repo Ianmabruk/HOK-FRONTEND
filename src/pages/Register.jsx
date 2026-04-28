@@ -86,7 +86,7 @@ export default function Register() {
         </div>
         {isAdminFlow && (
           <div className="mb-6 p-4 bg-cream dark:bg-gray-800 border-l-4 border-terracotta text-sm text-charcoal dark:text-gray-200">
-            <strong>Admin Access Required.</strong> The first account created becomes the admin account.{' '}
+            <strong>Admin Access Required.</strong> Only the configured admin email can create the dashboard account.{' '}
             <Link to="/login?admin=1" className="underline hover:text-terracotta">Sign in</Link>{' '}
             instead if the admin account already exists.
           </div>

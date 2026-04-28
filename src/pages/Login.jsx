@@ -66,9 +66,9 @@ export default function Login() {
         {isAdminFlow && (
           <div className="mb-6 p-4 bg-cream dark:bg-gray-800 border-l-4 border-terracotta text-sm text-charcoal dark:text-gray-200">
             <strong>{isSwitchFlow ? 'Admin Sign-In Required.' : 'Admin Access.'}</strong>{' '}
-            {isSwitchFlow ? 'Your current session is not an admin account. Sign in with the admin account to continue, or ' : 'Sign in with the existing admin account, or '}
-            <Link to="/register?admin=1" className="underline hover:text-terracotta">create the first account</Link>{' '}
-            if no admin has been registered yet.
+            {isSwitchFlow ? 'Your current session is not an admin account. Sign in with the configured admin account to continue, or ' : 'Sign in with the configured admin account, or '}
+            <Link to="/register?admin=1" className="underline hover:text-terracotta">create it with the permanent admin email</Link>{' '}
+            if the dashboard account has not been created yet.
           </div>
         )}
         {unverified && (
@@ -124,7 +124,7 @@ export default function Login() {
           <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
             Don&apos;t have an account?{' '}
             <Link to={`/register${isAdminFlow ? '?admin=1' : ''}`} className="text-charcoal dark:text-gray-200 underline hover:text-terracotta">
-              {isAdminFlow ? 'Create the first admin account' : 'Create one'}
+              {isAdminFlow ? 'Create the admin dashboard account' : 'Create one'}
             </Link>
           </p>
         </div>

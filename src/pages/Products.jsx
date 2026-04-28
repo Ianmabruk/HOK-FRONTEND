@@ -3,8 +3,8 @@ import { useSearchParams } from 'react-router-dom'
 import { FiFilter, FiX, FiChevronDown, FiSearch } from 'react-icons/fi'
 import { productsApi } from '../services/api'
 import ProductCard from '../components/ui/ProductCard'
+import { formatCategoryLabel, productMatchesTaxonomy, roomTypeOptions, shopTaxonomy, sortProducts } from '../utils/shopTaxonomy'
 
-const CATEGORIES = ['living-room', 'bedroom', 'kitchen', 'office', 'dining', 'outdoor', 'bathroom', 'entryway']
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest' },
   { value: 'price_asc', label: 'Price: Low to High' },
@@ -23,9 +23,58 @@ function SkeletonCard() {
   )
 }
 
-function FilterPanel({ category, minPrice, maxPrice, hasFilters, setParam, clearFilters }) {
+function FilterPanel({ category, mainCategory, subcategory, minPrice, maxPrice, hasFilters, setParam, clearFilters }) {
   return (
     <div className="space-y-6">
+      <div>
+        <h3 className="text-xs uppercase tracking-widest text-charcoal dark:text-gray-300 mb-3 font-semibold">Shop Categories</h3>
+        <div className="space-y-3">
+          <button
+            onClick={() => {
+              setParam('mainCategory', '')
+              setParam('subcategory', '')
+            }}
+            className={`block w-full text-left text-sm py-1.5 transition-colors ${!mainCategory ? 'text-terracotta font-medium' : 'text-light-charcoal dark:text-gray-400 hover:text-charcoal dark:hover:text-gray-200'}`}
+            style={{ minHeight: 'auto' }}
+          >
+            All Shop Categories
+          </button>
+          {shopTaxonomy.mainCategories.map((item) => (
+            <div key={item.slug}>
+              <button
+                onClick={() => {
+                  setParam('mainCategory', item.slug)
+                  if (!shopTaxonomy.subcategories[item.slug]?.some((child) => child.slug === subcategory)) {
+                    setParam('subcategory', '')
+                  }
+                }}
+                className={`block w-full text-left text-sm py-1.5 transition-colors ${mainCategory === item.slug ? 'text-terracotta font-medium' : 'text-light-charcoal dark:text-gray-400 hover:text-charcoal dark:hover:text-gray-200'}`}
+                style={{ minHeight: 'auto' }}
+              >
+                {item.label}
+              </button>
+              {shopTaxonomy.subcategories[item.slug]?.length ? (
+                <div className="mt-1 space-y-1 border-l border-gray-200 pl-3">
+                  {shopTaxonomy.subcategories[item.slug].map((child) => (
+                    <button
+                      key={child.slug}
+                      onClick={() => {
+                        setParam('mainCategory', item.slug)
+                        setParam('subcategory', child.slug)
+                      }}
+                      className={`block w-full text-left text-sm py-1 transition-colors ${subcategory === child.slug ? 'text-charcoal font-medium' : 'text-gray-400 hover:text-charcoal'}`}
+                      style={{ minHeight: 'auto' }}
+                    >
+                      {child.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div>
         <h3 className="text-xs uppercase tracking-widest text-charcoal dark:text-gray-300 mb-3 font-semibold">Category</h3>
         <div className="space-y-2">
@@ -36,7 +85,7 @@ function FilterPanel({ category, minPrice, maxPrice, hasFilters, setParam, clear
           >
             All Categories
           </button>
-          {CATEGORIES.map((c) => (
+          {roomTypeOptions.map((c) => (
             <button
               key={c}
               onClick={() => setParam('category', c)}
@@ -88,6 +137,7 @@ function FilterPanel({ category, minPrice, maxPrice, hasFilters, setParam, clear
 export default function Products() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [products, setProducts] = useState([])
+  const [allProducts, setAllProducts] = useState([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -95,6 +145,8 @@ export default function Products() {
   const debounceRef = useRef(null)
 
   const category = searchParams.get('category') || ''
+  const mainCategory = searchParams.get('mainCategory') || ''
+  const subcategory = searchParams.get('subcategory') || ''
   const search = searchParams.get('search') || ''
   const sort = searchParams.get('sort') || 'newest'
   const page = parseInt(searchParams.get('page') || '1', 10)
@@ -133,18 +185,24 @@ export default function Products() {
         const r = await productsApi.getAll({
           category: category || undefined,
           search: search || undefined,
-          sort,
-          page,
-          limit: PER_PAGE,
+          sort: 'newest',
+          page: 1,
+          limit: 240,
           price_min: minPrice || undefined,
           price_max: maxPrice || undefined,
         })
         if (!cancelled) {
-          setProducts(r.data.products || [])
-          setTotal(r.data.total || 0)
+          const fetchedProducts = r.data.products || []
+          const taxonomyFiltered = fetchedProducts.filter((product) => productMatchesTaxonomy(product, { mainCategory, subcategory }))
+          const sortedProducts = sortProducts(taxonomyFiltered, sort)
+          const startIndex = (page - 1) * PER_PAGE
+          setAllProducts(sortedProducts)
+          setProducts(sortedProducts.slice(startIndex, startIndex + PER_PAGE))
+          setTotal(sortedProducts.length)
         }
       } catch {
         if (!cancelled) {
+          setAllProducts([])
           setProducts([])
           setTotal(0)
         }
@@ -158,20 +216,27 @@ export default function Products() {
     return () => {
       cancelled = true
     }
-  }, [category, search, sort, page, minPrice, maxPrice])
+  }, [category, mainCategory, subcategory, search, sort, page, minPrice, maxPrice])
 
   const totalPages = Math.ceil(total / PER_PAGE)
-  const hasFilters = category || minPrice || maxPrice
+  const hasFilters = category || mainCategory || subcategory || minPrice || maxPrice
   const clearFilters = useCallback(() => setSearchParams(new URLSearchParams()), [setSearchParams])
+  const headingLabel = search
+    ? `Results for "${search}"`
+    : subcategory
+      ? formatCategoryLabel(subcategory)
+      : mainCategory
+        ? formatCategoryLabel(mainCategory)
+        : category
+          ? formatCategoryLabel(category)
+          : 'All Products'
 
   return (
     <div className="bg-warm-white dark:bg-gray-950 min-h-screen">
       {/* Page header */}
       <div className="bg-cream dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-          <h1 className="section-title text-2xl sm:text-4xl capitalize">
-            {search ? `Results for "${search}"` : category ? category.replace(/-/g, ' ') : 'All Products'}
-          </h1>
+          <h1 className="section-title text-2xl sm:text-4xl capitalize">{headingLabel}</h1>
           <p className="text-sm text-gray-400 mt-2">{total} {total === 1 ? 'item' : 'items'}</p>
           {/* Prominent search bar */}
           <div className="mt-6 relative max-w-lg">
@@ -200,7 +265,7 @@ export default function Products() {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* ── Sidebar – desktop ── */}
           <aside className="hidden lg:block w-56 shrink-0">
-            <FilterPanel category={category} minPrice={minPrice} maxPrice={maxPrice} hasFilters={hasFilters} setParam={setParam} clearFilters={clearFilters} />
+            <FilterPanel category={category} mainCategory={mainCategory} subcategory={subcategory} minPrice={minPrice} maxPrice={maxPrice} hasFilters={hasFilters} setParam={setParam} clearFilters={clearFilters} />
           </aside>
 
           {/* ── Main ── */}
@@ -299,7 +364,7 @@ export default function Products() {
               </button>
             </div>
             <div className="p-5">
-              <FilterPanel category={category} minPrice={minPrice} maxPrice={maxPrice} hasFilters={hasFilters} setParam={setParam} clearFilters={clearFilters} />
+              <FilterPanel category={category} mainCategory={mainCategory} subcategory={subcategory} minPrice={minPrice} maxPrice={maxPrice} hasFilters={hasFilters} setParam={setParam} clearFilters={clearFilters} />
             </div>
           </div>
         </div>

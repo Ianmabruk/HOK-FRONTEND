@@ -1,5 +1,14 @@
 import { Link } from 'react-router-dom'
-import { FiInstagram, FiTwitter, FiFacebook, FiMail } from 'react-icons/fi'
+import { FiFacebook, FiInstagram, FiLinkedin } from 'react-icons/fi'
+import { FaTiktok } from 'react-icons/fa6'
+import { socialLinks } from '../../data/showcaseContent'
+
+const socialIcons = {
+  Instagram: FiInstagram,
+  LinkedIn: FiLinkedin,
+  TikTok: FaTiktok,
+  Facebook: FiFacebook,
+}
 
 export default function Footer() {
   return (
@@ -11,28 +20,39 @@ export default function Footer() {
             Timeless interior design pieces curated for the modern home.
           </p>
           <div className="flex gap-3 mt-5">
-            {[{ icon: FiInstagram, label: 'Instagram' }, { icon: FiTwitter, label: 'Twitter' }, { icon: FiFacebook, label: 'Facebook' }, { icon: FiMail, label: 'Email' }].map(({ icon: Icon, label }) => (
-              <a key={label} href="#" aria-label={label} className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-700 text-gray-400 hover:text-cream hover:border-gray-500 transition-colors">
+            {socialLinks.map(({ label, href }) => {
+              const Icon = socialIcons[label]
+              return (
+                <a key={label} href={href} target="_blank" rel="noreferrer" aria-label={label} className="social-icon-link">
                 <Icon size={15} />
-              </a>
-            ))}
+                </a>
+              )
+            })}
           </div>
         </div>
         <div>
           <h4 className="text-xs uppercase tracking-widest mb-4 text-gray-400">Shop</h4>
-          {['Living Room', 'Bedroom', 'Kitchen', 'Office', 'Outdoor'].map((c) => (
+          {[
+            { label: 'Furniture', to: '/products?mainCategory=furniture' },
+            { label: 'Decor', to: '/products?mainCategory=decor' },
+            { label: 'Soft Furnishings', to: '/products?mainCategory=soft-furnishings' },
+            { label: 'Mirrors', to: '/products?mainCategory=decor&subcategory=mirrors' },
+            { label: 'Carpets', to: '/products?mainCategory=soft-furnishings&subcategory=carpets' },
+          ].map((item) => (
             <Link
-              key={c}
-              to={`/products?category=${c.toLowerCase().replace(' ', '-')}`}
+              key={item.label}
+              to={item.to}
               className="block text-sm text-gray-300 hover:text-cream mb-2"
             >
-              {c}
+              {item.label}
             </Link>
           ))}
         </div>
         <div>
           <h4 className="text-xs uppercase tracking-widest mb-4 text-gray-400">Company</h4>
-          {['About', 'Press', 'Careers', 'Sustainability'].map((l) => (
+          <Link to="/portfolio" className="block text-sm text-gray-300 hover:text-cream mb-2">Portfolio</Link>
+          <Link to="/before-after" className="block text-sm text-gray-300 hover:text-cream mb-2">Before &amp; After</Link>
+          {['Press', 'Careers', 'Sustainability'].map((l) => (
             <a key={l} href="#" className="block text-sm text-gray-300 hover:text-cream mb-2">{l}</a>
           ))}
         </div>

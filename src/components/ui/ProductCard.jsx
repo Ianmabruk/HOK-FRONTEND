@@ -7,12 +7,14 @@ import { useWishlistStore } from '../../store/wishlistStore'
 import toast from 'react-hot-toast'
 import { formatPrice } from '../../utils/currency'
 import { fallbackImageFor, getPrimaryProductImage } from '../../utils/productMedia'
+import { getProductTaxonomy } from '../../utils/shopTaxonomy'
 
 export default function ProductCard({ product }) {
   const addItem = useCartStore((s) => s.addItem)
   const currency = useCurrencyStore((s) => s.currency)
   const { toggle, has } = useWishlistStore()
   const wishlisted = has(product.id)
+  const taxonomy = getProductTaxonomy(product)
 
   const handleAdd = (e) => {
     e.preventDefault()
@@ -65,7 +67,7 @@ export default function ProductCard({ product }) {
         </button>
       </div>
       <div className="mt-3 px-0.5">
-        <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500">{product.category}</p>
+        <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500">{taxonomy.mainCategoryLabel}{taxonomy.subcategoryLabel ? ` / ${taxonomy.subcategoryLabel}` : ''}</p>
         <h3 className="font-serif text-sm sm:text-base text-charcoal dark:text-gray-200 mt-0.5 line-clamp-2">{product.title}</h3>
         <p className="text-sm text-light-charcoal dark:text-gray-400 mt-1 font-medium">{formatPrice(product.price, currency)}</p>
       </div>

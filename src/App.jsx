@@ -5,6 +5,8 @@ import { isAdminUser, useAuthStore } from './store/authStore'
 import { authApi } from './services/api'
 
 const Home = lazy(() => import('./pages/Home'))
+const BeforeAfter = lazy(() => import('./pages/BeforeAfter'))
+const Portfolio = lazy(() => import('./pages/Portfolio'))
 const Products = lazy(() => import('./pages/Products'))
 const ProductDetail = lazy(() => import('./pages/ProductDetail'))
 const Cart = lazy(() => import('./pages/Cart'))
@@ -77,6 +79,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
+          <Route path="before-after" element={<BeforeAfter />} />
+          <Route path="portfolio" element={<Portfolio />} />
           <Route path="products" element={<Products />} />
           <Route path="products/:id" element={<ProductDetail />} />
           <Route path="cart" element={<Cart />} />

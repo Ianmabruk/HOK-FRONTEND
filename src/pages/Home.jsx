@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { productsApi } from '../services/api'
 import ProductCard from '../components/ui/ProductCard'
 import { isAdminUser, useAuthStore } from '../store/authStore'
+import { beforeAfterProjects, portfolioProjects, socialLinks } from '../data/showcaseContent'
 
 const CATEGORIES = [
   { name: 'Living Room', slug: 'living-room', img: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80' },
@@ -172,6 +173,80 @@ export default function Home() {
 
         <div className="text-center mt-10 sm:hidden">
           <Link to="/products" className="btn-outline inline-flex">View All Products</Link>
+        </div>
+      </section>
+
+      <section className="py-14 sm:py-20 bg-cream/70">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-8">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-terracotta mb-2">In motion</p>
+              <h2 className="section-title text-2xl sm:text-3xl">Before &amp; After</h2>
+            </div>
+            <Link to="/before-after" className="text-xs uppercase tracking-widest text-light-charcoal hover:text-terracotta transition-colors">See all transformations →</Link>
+          </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            {beforeAfterProjects.slice(0, 2).map((project) => (
+              <Link key={project.id} to="/before-after" className="group overflow-hidden rounded-3xl bg-charcoal text-white shadow-lg">
+                <div className="relative aspect-[4/3] overflow-hidden">
+                  <img src={project.afterPoster} alt={project.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+                  <div className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/35 px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-white/70">{project.roomType}</div>
+                  <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
+                    <h3 className="font-serif text-2xl">{project.title}</h3>
+                    <p className="mt-2 max-w-md text-sm leading-6 text-white/75">{project.description}</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-14 sm:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-8">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-terracotta mb-2">Finished interiors</p>
+            <h2 className="section-title text-2xl sm:text-3xl">Portfolio Spotlight</h2>
+          </div>
+          <Link to="/portfolio" className="text-xs uppercase tracking-widest text-light-charcoal hover:text-terracotta transition-colors">Browse portfolio →</Link>
+        </div>
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {portfolioProjects.slice(0, 3).map((project) => (
+            <Link key={project.id} to="/portfolio" className="group showcase-card overflow-hidden">
+              <div className="relative aspect-[4/5] overflow-hidden rounded-2xl">
+                <img src={project.image} alt={project.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-5 text-white">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/65">{project.roomType} / {project.style}</p>
+                  <h3 className="mt-2 font-serif text-2xl">{project.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-white/75">{project.summary}</p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="py-14 sm:py-20 bg-white border-y border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-8">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-terracotta mb-2">Social presence</p>
+              <h2 className="section-title text-2xl sm:text-3xl">Follow the studio</h2>
+            </div>
+            <p className="text-sm text-light-charcoal max-w-xl">Stay close to our project launches, quick transformation clips, and styling notes shared across our social channels.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {socialLinks.map((link) => (
+              <a key={link.label} href={link.href} target="_blank" rel="noreferrer" className="showcase-card group rounded-2xl border border-gray-100 bg-warm-white p-5 transition-transform duration-300 hover:-translate-y-1">
+                <p className="text-[10px] uppercase tracking-[0.24em] text-terracotta">{link.label}</p>
+                <h3 className="mt-4 font-serif text-2xl text-charcoal">{link.handle}</h3>
+                <p className="mt-3 text-sm leading-6 text-light-charcoal">{link.blurb}</p>
+                <span className="mt-6 inline-flex text-xs uppercase tracking-widest text-charcoal group-hover:text-terracotta">Open profile →</span>
+              </a>
+            ))}
+          </div>
         </div>
       </section>
 

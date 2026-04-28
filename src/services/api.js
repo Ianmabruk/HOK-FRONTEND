@@ -88,6 +88,7 @@ export const ordersApi = {
 
 export const usersApi = {
   getAll: () => api.get('/users'),
+  sendEmail: (data) => api.post('/users/email', data),
 }
 
 export const vendorsApi = {
