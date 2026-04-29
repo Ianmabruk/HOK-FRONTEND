@@ -39,11 +39,11 @@ function PageLoader() {
 }
 
 function AdminRoute({ children }) {
-  const { user } = useAuthStore()
+  const { user, token } = useAuthStore()
   const [setupState, setSetupState] = useState('checking')
 
   useEffect(() => {
-    if (user) return undefined
+    if (user && token) return undefined
 
     let active = true
 
@@ -60,18 +60,19 @@ function AdminRoute({ children }) {
     return () => {
       active = false
     }
-  }, [user])
+  }, [user, token])
 
+  if (user && !token) return <Navigate to="/login?admin=1" replace />
   if (user && !isAdminUser(user)) return <Navigate to="/login?admin=1&switch=1" replace />
-  if (user) return children
+  if (user && token) return children
   if (setupState === 'checking') return <PageLoader />
   if (setupState === 'needs-setup') return <Navigate to="/register?admin=1" replace />
   return <Navigate to="/login?admin=1" replace />
 }
 
 function ProtectedRoute({ children, adminOnly = false }) {
-  const { user } = useAuthStore()
-  if (!user) return <Navigate to={adminOnly ? '/login?admin=1' : '/login'} />
+  const { user, token } = useAuthStore()
+  if (!user || !token) return <Navigate to={adminOnly ? '/login?admin=1' : '/login'} replace />
   if (adminOnly && !isAdminUser(user)) return <Navigate to="/?unauthorized=1" />
   return children
 }

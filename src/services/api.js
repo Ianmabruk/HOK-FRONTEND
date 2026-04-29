@@ -48,16 +48,13 @@ api.interceptors.response.use(
     if (data && typeof data === 'object' && data.message) {
       err.userMessage = data.message
     } else if (err.response.status === 401) {
-      err.userMessage = 'Your session is not authorized for this action. Please sign in with an admin account.'
+      err.userMessage = 'Your session has expired. Please sign in again.'
     } else {
       err.userMessage = `Server error (${err.response.status}). Please try again.`
     }
 
-    // Only force logout on explicit auth/session endpoints to avoid unexpected admin page redirects
-    const requestUrl = String(err.config?.url || '')
-    const authEndpoints = ['/login', '/register', '/verify-email', '/resend-verification', '/forgot-password', '/reset-password']
-    const isAuthRequest = authEndpoints.some((endpoint) => requestUrl.includes(endpoint))
-    if (err.response.status === 401 && isAuthRequest) {
+    // Force logout on any unauthorized response to clear stale persisted sessions.
+    if (err.response.status === 401) {
       useAuthStore.getState().logout()
     }
 
