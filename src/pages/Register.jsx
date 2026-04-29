@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { FiMail, FiCheckCircle } from 'react-icons/fi'
 import { authApi } from '../services/api'
@@ -10,10 +10,20 @@ export default function Register() {
   const [loading, setLoading] = useState(false)
   const [registered, setRegistered] = useState(false)
   const [registeredName, setRegisteredName] = useState('')
+  const [adminEmail, setAdminEmail] = useState('admin@hokinterior.com')
   const setAuth = useAuthStore((s) => s.setAuth)
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const isAdminFlow = searchParams.get('admin') === '1'
+
+  useEffect(() => {
+    if (!isAdminFlow) return
+    authApi.getSetupStatus()
+      .then(({ data }) => {
+        if (data?.admin_email) setAdminEmail(String(data.admin_email).toLowerCase())
+      })
+      .catch(() => {})
+  }, [isAdminFlow])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -89,6 +99,9 @@ export default function Register() {
             <strong>Admin Access Required.</strong> Only the configured admin email can create the dashboard account.{' '}
             <Link to="/login?admin=1" className="underline hover:text-terracotta">Sign in</Link>{' '}
             instead if the admin account already exists.
+            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              Required admin email: <strong>{adminEmail}</strong>
+            </div>
           </div>
         )}
         <div className="bg-white dark:bg-gray-900 rounded shadow-sm border border-gray-100 dark:border-gray-800 p-8">

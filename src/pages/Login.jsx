@@ -10,6 +10,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [unverified, setUnverified] = useState(false)
   const [resending, setResending] = useState(false)
+  const [adminEmail, setAdminEmail] = useState('admin@hokinterior.com')
   const setAuth = useAuthStore((s) => s.setAuth)
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
@@ -21,6 +22,15 @@ export default function Login() {
   useEffect(() => {
     if (isSwitchFlow && user) logout()
   }, [isSwitchFlow, logout, user])
+
+  useEffect(() => {
+    if (!isAdminFlow) return
+    authApi.getSetupStatus()
+      .then(({ data }) => {
+        if (data?.admin_email) setAdminEmail(String(data.admin_email).toLowerCase())
+      })
+      .catch(() => {})
+  }, [isAdminFlow])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -69,6 +79,9 @@ export default function Login() {
             {isSwitchFlow ? 'Your current session is not an admin account. Sign in with the configured admin account to continue, or ' : 'Sign in with the configured admin account, or '}
             <Link to="/register?admin=1" className="underline hover:text-terracotta">create it with the permanent admin email</Link>{' '}
             if the dashboard account has not been created yet.
+            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              Admin email: <strong>{adminEmail}</strong>
+            </div>
           </div>
         )}
         {unverified && (
