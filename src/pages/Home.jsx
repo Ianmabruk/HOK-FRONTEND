@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { productsApi } from '../services/api'
+import { beforeAfterApi, productsApi } from '../services/api'
 import ProductCard from '../components/ui/ProductCard'
+import BeforeAfterComparison from '../components/showcase/BeforeAfterComparison'
 import { isAdminUser, useAuthStore } from '../store/authStore'
-import { beforeAfterProjects, portfolioProjects, socialLinks } from '../data/showcaseContent'
+import { beforeAfterProjects as fallbackBeforeAfterProjects, portfolioProjects, socialLinks } from '../data/showcaseContent'
 
 const CATEGORIES = [
   { name: 'Living Room', slug: 'living-room', img: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80' },
@@ -20,11 +21,33 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [email, setEmail] = useState('')
   const [subscribed, setSubscribed] = useState(false)
+  const [beforeAfter, setBeforeAfter] = useState(fallbackBeforeAfterProjects)
 
   useEffect(() => {
     productsApi.getAll({ limit: 8 }).then((r) => {
       setFeatured(r.data.products || [])
     }).catch(() => {}).finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    beforeAfterApi.getAll()
+      .then((r) => {
+        const projects = (r.data || []).map((project) => ({
+          id: String(project.id),
+          title: project.title,
+          description: project.description,
+          roomType: project.room_type,
+          style: project.style,
+          beforeVideo: project.before_video_url,
+          afterVideo: project.after_video_url,
+          beforePoster: project.before_poster_url,
+          afterPoster: project.after_poster_url,
+        }))
+        if (projects.length > 0) {
+          setBeforeAfter(projects)
+        }
+      })
+      .catch(() => {})
   }, [])
 
   const handleSubscribe = (e) => {
@@ -186,18 +209,8 @@ export default function Home() {
             <Link to="/before-after" className="text-xs uppercase tracking-widest text-light-charcoal hover:text-terracotta transition-colors">See all transformations →</Link>
           </div>
           <div className="grid gap-6 lg:grid-cols-2">
-            {beforeAfterProjects.slice(0, 2).map((project) => (
-              <Link key={project.id} to="/before-after" className="group overflow-hidden rounded-3xl bg-charcoal text-white shadow-lg">
-                <div className="relative aspect-[4/3] overflow-hidden">
-                  <img src={project.afterPoster} alt={project.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-                  <div className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/35 px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-white/70">{project.roomType}</div>
-                  <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
-                    <h3 className="font-serif text-2xl">{project.title}</h3>
-                    <p className="mt-2 max-w-md text-sm leading-6 text-white/75">{project.description}</p>
-                  </div>
-                </div>
-              </Link>
+            {beforeAfter.slice(0, 2).map((project, i) => (
+              <BeforeAfterComparison key={project.id} project={project} priority={i === 0} />
             ))}
           </div>
         </div>

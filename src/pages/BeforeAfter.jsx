@@ -1,7 +1,32 @@
-import { beforeAfterProjects } from '../data/showcaseContent'
+import { useEffect, useState } from 'react'
+import { beforeAfterApi } from '../services/api'
+import { beforeAfterProjects as fallbackBeforeAfterProjects } from '../data/showcaseContent'
 import BeforeAfterComparison from '../components/showcase/BeforeAfterComparison'
 
 export default function BeforeAfter() {
+  const [projects, setProjects] = useState(fallbackBeforeAfterProjects)
+
+  useEffect(() => {
+    beforeAfterApi.getAll()
+      .then((r) => {
+        const mapped = (r.data || []).map((project) => ({
+          id: String(project.id),
+          title: project.title,
+          description: project.description,
+          roomType: project.room_type,
+          style: project.style,
+          beforeVideo: project.before_video_url,
+          afterVideo: project.after_video_url,
+          beforePoster: project.before_poster_url,
+          afterPoster: project.after_poster_url,
+        }))
+        if (mapped.length > 0) {
+          setProjects(mapped)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   return (
     <div className="bg-warm-white min-h-screen">
       <section className="relative overflow-hidden bg-charcoal px-4 py-20 text-white sm:px-6 lg:px-8 lg:py-28">
@@ -17,7 +42,7 @@ export default function BeforeAfter() {
 
       <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
         <div className="grid gap-12">
-          {beforeAfterProjects.map((project, index) => (
+          {projects.map((project, index) => (
             <div key={project.id} style={{ animationDelay: `${index * 120}ms` }}>
               <BeforeAfterComparison project={project} priority={index === 0} />
             </div>

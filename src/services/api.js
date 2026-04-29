@@ -101,3 +101,10 @@ export const vendorsApi = {
 }
 
 export default api
+
+export const beforeAfterApi = {
+  getAll: () => api.get('/before-after'),
+  create: (data) => api.post('/before-after', data),
+  update: (id, data) => api.put(`/before-after/${id}`, data),
+  delete: (id) => api.delete(`/before-after/${id}`),
+}

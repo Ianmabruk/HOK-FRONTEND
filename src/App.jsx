@@ -25,6 +25,7 @@ const AdminOrders = lazy(() => import('./admin/Orders'))
 const AdminUsers = lazy(() => import('./admin/Users'))
 const AdminChats = lazy(() => import('./admin/Chats'))
 const AdminVendors = lazy(() => import('./admin/Vendors'))
+const AdminBeforeAfter = lazy(() => import('./admin/BeforeAfter'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
 function PageLoader() {
@@ -101,6 +102,7 @@ export default function App() {
           <Route path="users" element={<AdminUsers />} />
           <Route path="chats" element={<AdminChats />} />
           <Route path="vendors" element={<AdminVendors />} />
+                  <Route path="before-after" element={<AdminBeforeAfter />} />
         </Route>
       </Routes>
     </Suspense>

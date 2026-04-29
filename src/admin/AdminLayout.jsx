@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   FiGrid, FiPackage, FiShoppingCart, FiUsers,
   FiMessageCircle, FiTruck, FiMenu, FiX, FiLogOut,
+  FiFilm,
 } from 'react-icons/fi'
 import { useAuthStore } from '../store/authStore'
 
@@ -13,6 +14,8 @@ const NAV = [
   { label: 'Users', icon: FiUsers, to: '/admin/users' },
   { label: 'Chats', icon: FiMessageCircle, to: '/admin/chats' },
   { label: 'Vendors', icon: FiTruck, to: '/admin/vendors' },
+    { label: 'Before & After', icon: FiFilm, to: '/admin/before-after' },
+  { label: 'Before & After', icon: FiFilm, to: '/admin/before-after' },
 ]
 
 export default function AdminLayout() {

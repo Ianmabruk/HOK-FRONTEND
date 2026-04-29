@@ -1,6 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from decimal import Decimal
 
 db = SQLAlchemy()
 
@@ -159,19 +158,11 @@ class OrderItem(db.Model):
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
-    unit_price = db.Column(db.Numeric(10, 2), nullable=True)
-    product_title = db.Column(db.String(255), nullable=True)
-    product_image = db.Column(db.Text, nullable=True)
-    customizations = db.Column(db.JSON, nullable=True)
     product = db.relationship('Product')
 
     def to_dict(self):
         return {'id': self.id, 'product_id': self.product_id,
                 'quantity': self.quantity,
-                'unit_price': float(self.unit_price) if self.unit_price is not None else None,
-                'product_title': self.product_title,
-                'product_image': self.product_image,
-                'customizations': self.customizations,
                 'product': self.product.to_dict() if self.product else None}
 
 
@@ -198,4 +189,34 @@ class Chat(db.Model):
             'text': self.text, 'timestamp': self.timestamp.isoformat(),
             'product_id': self.product_id, 'product_title': self.product_title,
             'product_price': self.product_price, 'product_image': self.product_image,
+        }
+
+
+class BeforeAfterProject(db.Model):
+    __tablename__ = 'before_after_projects'
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    room_type = db.Column(db.String(80))
+    style = db.Column(db.String(80))
+    before_video_url = db.Column(db.Text)
+    after_video_url = db.Column(db.Text)
+    before_poster_url = db.Column(db.Text)
+    after_poster_url = db.Column(db.Text)
+    sort_order = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'description': self.description,
+            'room_type': self.room_type,
+            'style': self.style,
+            'before_video_url': self.before_video_url,
+            'after_video_url': self.after_video_url,
+            'before_poster_url': self.before_poster_url,
+            'after_poster_url': self.after_poster_url,
+            'sort_order': self.sort_order,
+            'created_at': self.created_at.isoformat(),
         }

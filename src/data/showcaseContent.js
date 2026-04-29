@@ -13,8 +13,8 @@ export const socialLinks = [
   },
   {
     label: 'TikTok',
-    href: 'https://www.tiktok.com/',
-    handle: '@hokinteriors',
+    href: 'https://www.tiktok.com/@esther.k.musa?_r=1&_t=ZS-95vgT96lmkf',
+    handle: '@esther.k.musa',
     blurb: 'Fast transformation clips, walkthroughs, and sourcing highlights.',
   },
   {
