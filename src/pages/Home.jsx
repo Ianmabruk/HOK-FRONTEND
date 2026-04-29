@@ -184,6 +184,41 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="py-14 sm:py-20 border-y border-gray-100 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-8">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-terracotta mb-2">Interior design services</p>
+              <h2 className="section-title text-2xl sm:text-3xl">Built for homes and projects</h2>
+            </div>
+            <p className="text-sm text-light-charcoal max-w-2xl">
+              From concept to installation, HOK combines furniture sourcing with practical interior planning so your space feels cohesive, functional, and premium.
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              {
+                title: 'Space Planning',
+                desc: 'Room layouts tailored to movement, comfort, and daily use across residential and commercial spaces.',
+              },
+              {
+                title: 'Furniture Curation',
+                desc: 'Coordinated furniture and finish selections that match your style, timeline, and budget.',
+              },
+              {
+                title: 'Project Delivery',
+                desc: 'Reliable procurement and setup support to ensure every selected piece arrives and fits exactly as planned.',
+              },
+            ].map((item) => (
+              <article key={item.title} className="rounded-2xl border border-gray-100 bg-warm-white p-6">
+                <h3 className="font-serif text-2xl text-charcoal">{item.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-light-charcoal">{item.desc}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ─── Featured Products ────────────────────────────────────── */}
       <section className="py-14 sm:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-end justify-between mb-8">

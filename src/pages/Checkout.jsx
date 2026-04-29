@@ -37,7 +37,7 @@ export default function Checkout() {
       toast.success('Order placed successfully!')
       navigate('/')
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to place order')
+      toast.error(err.userMessage || err.response?.data?.message || 'Failed to place order. Please try again.')
     } finally {
       setLoading(false)
     }
