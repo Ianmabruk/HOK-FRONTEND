@@ -4,7 +4,8 @@ import { emitAdminDataChanged } from './adminEvents'
 import { FiPlus, FiEdit2, FiTrash2, FiX, FiVideo } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { useCurrencyStore } from '../store/currencyStore'
-import { formatPrice } from '../utils/currency'
+import { CURRENCIES } from '../utils/currency'
+import { formatPrice, getCurrencyConfig } from '../utils/currency'
 import { fallbackImageFor, getPrimaryProductImage, parseImageList, serializeImageList } from '../utils/productMedia'
 
 const EMPTY = { title: '', description: '', price: '', stock: '', category: '', image_url: '', video_url: '', vendor_id: '' }
@@ -27,6 +28,8 @@ function normalizeProductForm(form) {
 
 export default function AdminProducts() {
   const currency = useCurrencyStore((s) => s.currency)
+  const setCurrency = useCurrencyStore((s) => s.setCurrency)
+  const currencyConfig = getCurrencyConfig(currency)
   const [products, setProducts] = useState([])
   const [vendors, setVendors] = useState([])
   const [modal, setModal] = useState(false)
@@ -36,7 +39,15 @@ export default function AdminProducts() {
 
   const load = () => {
     productsApi.getAll({}).then((r) => setProducts(r.data.products || [])).catch(() => {})
-    vendorsApi.getAll().then((r) => setVendors(r.data || [])).catch(() => {})
+    vendorsApi.getAll()
+      .then((r) => setVendors(r.data || []))
+      .catch((error) => {
+        if (error?.response?.status === 401) {
+          toast.error(error?.userMessage || 'Unauthorized to load vendors. Please login as admin.')
+          return
+        }
+        toast.error(error?.userMessage || 'Failed to load vendors')
+      })
   }
 
   useEffect(() => { load() }, [])
@@ -116,14 +127,17 @@ export default function AdminProducts() {
     const payload = normalizeProductForm(form)
     try {
       if (editing) {
-        const { data } = await productsApi.update(editing, payload)
-        setProducts((prev) => prev.map((product) => product.id === editing ? data : product))
+        await productsApi.update(editing, payload)
         toast.success('Product updated')
       } else {
-        const { data } = await productsApi.create(payload)
-        setProducts((prev) => [data, ...prev])
+        await productsApi.create(payload)
         toast.success('Product created')
       }
+
+      // Reload from backend so latest persisted media URLs and product data are reflected immediately
+      const refreshed = await productsApi.getAll({})
+      setProducts(refreshed.data.products || [])
+
       setModal(false)
       emitAdminDataChanged({ type: 'product-changed' })
     } catch {
@@ -209,6 +223,19 @@ export default function AdminProducts() {
               <button onClick={() => setModal(false)}><FiX /></button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs uppercase tracking-widest text-gray-500 block mb-1">Currency</label>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="w-full border border-gray-200 px-3 py-2 text-sm outline-none focus:border-charcoal"
+                >
+                  {Object.values(CURRENCIES).map((item) => (
+                    <option key={item.code} value={item.code}>{item.label}</option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-gray-400 mt-1">Price input is stored in USD base and previewed in the selected display currency.</p>
+              </div>
               {[
                 { label: 'Title', field: 'title', type: 'text' },
                 { label: 'Price', field: 'price', type: 'number' },
@@ -216,13 +243,28 @@ export default function AdminProducts() {
               ].map(({ label, field, type }) => (
                 <div key={field}>
                   <label className="text-xs uppercase tracking-widest text-gray-500 block mb-1">{label}</label>
-                  <input
-                    type={type}
-                    value={form[field]}
-                    onChange={(e) => setForm({ ...form, [field]: e.target.value })}
-                    className="w-full border border-gray-200 px-3 py-2 text-sm outline-none focus:border-charcoal"
-                    required={['title', 'price', 'stock'].includes(field)}
-                  />
+                  {field === 'price' ? (
+                    <div className="flex">
+                      <span className="inline-flex items-center px-3 border border-r-0 border-gray-200 bg-gray-50 text-xs text-gray-500 uppercase tracking-wider rounded-l">
+                        {currencyConfig.symbol} {currencyConfig.code}
+                      </span>
+                      <input
+                        type={type}
+                        value={form[field]}
+                        onChange={(e) => setForm({ ...form, [field]: e.target.value })}
+                        className="w-full border border-gray-200 px-3 py-2 text-sm outline-none focus:border-charcoal rounded-r"
+                        required={['title', 'price', 'stock'].includes(field)}
+                      />
+                    </div>
+                  ) : (
+                    <input
+                      type={type}
+                      value={form[field]}
+                      onChange={(e) => setForm({ ...form, [field]: e.target.value })}
+                      className="w-full border border-gray-200 px-3 py-2 text-sm outline-none focus:border-charcoal"
+                      required={['title', 'price', 'stock'].includes(field)}
+                    />
+                  )}
                 </div>
               ))}
               <div>

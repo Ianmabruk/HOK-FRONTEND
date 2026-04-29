@@ -33,10 +33,6 @@ api.interceptors.response.use(
       return Promise.reject(err)
     }
 
-    if (err.response.status === 401) {
-      useAuthStore.getState().logout()
-    }
-
     if (!import.meta.env.DEV && isGithubRepoUrl) {
       err.userMessage = 'VITE_API_URL is pointing to a GitHub repository, not a deployed backend API. Use your live backend URL ending in /api.'
       return Promise.reject(err)
@@ -51,8 +47,18 @@ api.interceptors.response.use(
     const data = err.response.data
     if (data && typeof data === 'object' && data.message) {
       err.userMessage = data.message
+    } else if (err.response.status === 401) {
+      err.userMessage = 'Your session is not authorized for this action. Please sign in with an admin account.'
     } else {
       err.userMessage = `Server error (${err.response.status}). Please try again.`
+    }
+
+    // Only force logout on explicit auth/session endpoints to avoid unexpected admin page redirects
+    const requestUrl = String(err.config?.url || '')
+    const authEndpoints = ['/login', '/register', '/verify-email', '/resend-verification', '/forgot-password', '/reset-password']
+    const isAuthRequest = authEndpoints.some((endpoint) => requestUrl.includes(endpoint))
+    if (err.response.status === 401 && isAuthRequest) {
+      useAuthStore.getState().logout()
     }
 
     return Promise.reject(err)
