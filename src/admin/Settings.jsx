@@ -36,10 +36,12 @@ export default function AdminSettings() {
           className="w-full md:max-w-sm border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-charcoal dark:bg-gray-800"
         >
           {Object.values(CURRENCIES).map((option) => (
-            <option key={option.code} value={option.code}>{option.name} ({option.code})</option>
+            <option key={option.code} value={option.code}>{option.name} ({option.code}, {option.label})</option>
           ))}
         </select>
-        <p className="text-xs text-gray-400 mt-2">Default currency is now Kenyan Shilling (KES).</p>
+        <p className="text-xs text-gray-400 mt-2">
+          Current active currency: <strong className="text-charcoal dark:text-gray-200">{CURRENCIES[currency]?.name || currency} ({currency})</strong>. Prices across storefront and admin totals update instantly.
+        </p>
       </section>
 
       <section className="bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 p-5">

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import { FiCalendar, FiDollarSign, FiMoon, FiSettings, FiShoppingCart, FiSun, FiUsers, FiPackage } from 'react-icons/fi'
 import { onAdminDataChanged } from './adminEvents'
@@ -84,9 +85,18 @@ export default function Dashboard() {
               style={{ minHeight: '40px' }}
             >
               {Object.values(CURRENCIES).map((option) => (
-                <option key={option.code} value={option.code}>{option.name} ({option.code})</option>
+                <option key={option.code} value={option.code}>{option.name} ({option.code}, {option.label})</option>
               ))}
             </select>
+            <p className="text-xs text-gray-400 mt-2">
+              Active display currency: <strong className="text-charcoal">{CURRENCIES[currency]?.name || currency} ({currency})</strong>. This affects storefront and admin totals.
+            </p>
+            <Link
+              to="/admin/settings"
+              className="inline-flex items-center mt-3 text-xs uppercase tracking-widest text-terracotta hover:underline"
+            >
+              Open full settings dashboard
+            </Link>
           </div>
 
           <div>
