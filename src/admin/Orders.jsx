@@ -32,7 +32,13 @@ export default function AdminOrders() {
         setOrders(r.data || [])
         setLastRefresh(Date.now())
       })
-      .catch(() => {})
+      .catch((error) => {
+        if (error?.response?.status === 401) {
+          toast.error(error?.userMessage || 'Session expired. Please login again as admin.')
+          return
+        }
+        toast.error(error?.userMessage || 'Failed to load orders')
+      })
       .finally(() => setLoading(false))
   }, [])
 

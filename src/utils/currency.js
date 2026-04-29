@@ -1,4 +1,4 @@
-export const DEFAULT_CURRENCY = 'USD'
+export const DEFAULT_CURRENCY = 'KES'
 
 export const CURRENCIES = {
   USD: { code: 'USD', label: 'USD $', name: 'US Dollar', locale: 'en-US', rate: 1 },

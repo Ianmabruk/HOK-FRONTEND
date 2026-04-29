@@ -1,18 +1,28 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { beforeAfterApi, productsApi } from '../services/api'
+import { beforeAfterApi, productsApi, siteSettingsApi } from '../services/api'
 import ProductCard from '../components/ui/ProductCard'
 import BeforeAfterComparison from '../components/showcase/BeforeAfterComparison'
 import { isAdminUser, useAuthStore } from '../store/authStore'
 import { beforeAfterProjects as fallbackBeforeAfterProjects, portfolioProjects, socialLinks } from '../data/showcaseContent'
 
+const DEFAULT_HERO_IMAGE = 'https://images.unsplash.com/photo-1618219908412-a29a1bb7b86e?w=1800&q=85'
+const DEFAULT_CATEGORY_IMAGES = {
+  'living-room': 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80',
+  bedroom: 'https://images.unsplash.com/photo-1560448204-603b3fc33ddc?w=600&q=80',
+  kitchen: 'https://images.unsplash.com/photo-1560185007-5f0bb1866cab?w=600&q=80',
+  office: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=600&q=80',
+  dining: 'https://images.unsplash.com/photo-1617806118233-18e1de247200?w=600&q=80',
+  outdoor: 'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=600&q=80',
+}
+
 const CATEGORIES = [
-  { name: 'Living Room', slug: 'living-room', img: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80' },
-  { name: 'Bedroom', slug: 'bedroom', img: 'https://images.unsplash.com/photo-1560448204-603b3fc33ddc?w=600&q=80' },
-  { name: 'Kitchen', slug: 'kitchen', img: 'https://images.unsplash.com/photo-1556909114-44e3e9399a2b?w=600&q=80' },
-  { name: 'Office', slug: 'office', img: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=600&q=80' },
-  { name: 'Dining', slug: 'dining', img: 'https://images.unsplash.com/photo-1617806118233-18e1de247200?w=600&q=80' },
-  { name: 'Outdoor', slug: 'outdoor', img: 'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=600&q=80' },
+  { name: 'Living Room', slug: 'living-room' },
+  { name: 'Bedroom', slug: 'bedroom' },
+  { name: 'Kitchen', slug: 'kitchen' },
+  { name: 'Office', slug: 'office' },
+  { name: 'Dining', slug: 'dining' },
+  { name: 'Outdoor', slug: 'outdoor' },
 ]
 
 export default function Home() {
@@ -22,6 +32,8 @@ export default function Home() {
   const [email, setEmail] = useState('')
   const [subscribed, setSubscribed] = useState(false)
   const [beforeAfter, setBeforeAfter] = useState(fallbackBeforeAfterProjects)
+  const [heroImage, setHeroImage] = useState(DEFAULT_HERO_IMAGE)
+  const [categoryImages, setCategoryImages] = useState(DEFAULT_CATEGORY_IMAGES)
 
   useEffect(() => {
     productsApi.getAll({ limit: 8 }).then((r) => {
@@ -50,6 +62,19 @@ export default function Home() {
       .catch(() => {})
   }, [])
 
+  useEffect(() => {
+    siteSettingsApi.getLandingImages()
+      .then(({ data }) => {
+        if (typeof data?.hero === 'string' && data.hero.trim()) {
+          setHeroImage(data.hero.trim())
+        }
+        if (data?.categories && typeof data.categories === 'object') {
+          setCategoryImages((prev) => ({ ...prev, ...data.categories }))
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   const handleSubscribe = (e) => {
     e.preventDefault()
     if (email.trim()) { setSubscribed(true) }
@@ -60,7 +85,7 @@ export default function Home() {
       {/* ─── Hero ──────────────────────────────────────────────── */}
       <section className="relative h-[60vh] sm:h-[70vh] lg:h-[85vh] overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1618219908412-a29a1bb7b86e?w=1800&q=85"
+          src={heroImage}
           alt="HOK Interior Design showroom"
           loading="eager"
           className="absolute inset-0 w-full h-full object-cover object-center"
@@ -112,7 +137,7 @@ export default function Home() {
               className="group relative aspect-[3/4] sm:aspect-[2/3] overflow-hidden rounded"
             >
               <img
-                src={cat.img}
+                src={categoryImages[cat.slug] || DEFAULT_CATEGORY_IMAGES[cat.slug]}
                 alt={cat.name}
                 loading="lazy"
                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"

@@ -4,6 +4,7 @@ import {
   FiGrid, FiPackage, FiShoppingCart, FiUsers,
   FiMessageCircle, FiTruck, FiMenu, FiX, FiLogOut,
   FiFilm,
+  FiImage,
 } from 'react-icons/fi'
 import { useAuthStore } from '../store/authStore'
 
@@ -14,8 +15,8 @@ const NAV = [
   { label: 'Users', icon: FiUsers, to: '/admin/users' },
   { label: 'Chats', icon: FiMessageCircle, to: '/admin/chats' },
   { label: 'Vendors', icon: FiTruck, to: '/admin/vendors' },
-    { label: 'Before & After', icon: FiFilm, to: '/admin/before-after' },
   { label: 'Before & After', icon: FiFilm, to: '/admin/before-after' },
+  { label: 'Landing Images', icon: FiImage, to: '/admin/landing-images' },
 ]
 
 export default function AdminLayout() {

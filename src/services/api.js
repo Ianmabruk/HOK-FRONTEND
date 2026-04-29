@@ -106,6 +106,11 @@ export const vendorsApi = {
   delete: (id) => api.delete(`/vendors/${id}`),
 }
 
+export const siteSettingsApi = {
+  getLandingImages: () => api.get('/site-settings/landing-images'),
+  updateLandingImages: (data) => api.put('/site-settings/landing-images', data),
+}
+
 export default api
 
 export const beforeAfterApi = {

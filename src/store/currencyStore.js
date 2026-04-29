@@ -12,6 +12,10 @@ export const useCurrencyStore = create(
         currency: isSupportedCurrency(currency) ? currency : DEFAULT_CURRENCY,
       }),
     }),
-    { name: 'currency-storage' }
+    {
+      name: 'currency-storage',
+      version: 2,
+      migrate: () => ({ currency: DEFAULT_CURRENCY }),
+    }
   )
 )
