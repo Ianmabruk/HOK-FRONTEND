@@ -5,7 +5,7 @@ import { FiPlus, FiEdit2, FiTrash2, FiX, FiVideo } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { useCurrencyStore } from '../store/currencyStore'
 import { CURRENCIES } from '../utils/currency'
-import { formatPrice, getCurrencyConfig } from '../utils/currency'
+import { convertPrice, formatPrice, getCurrencyConfig } from '../utils/currency'
 import { fallbackImageFor, getPrimaryProductImage, parseImageList, serializeImageList } from '../utils/productMedia'
 
 const EMPTY = { title: '', description: '', price: '', stock: '', category: '', image_url: '', video_url: '', vendor_id: '' }
@@ -24,6 +24,19 @@ function normalizeProductForm(form) {
     stock: Number(form.stock),
     vendor_id: form.vendor_id ? Number(form.vendor_id) : '',
   }
+}
+
+function toBasePrice(displayPrice, currency) {
+  const numeric = Number(displayPrice)
+  if (!Number.isFinite(numeric)) return 0
+  const rate = getCurrencyConfig(currency).rate || 1
+  return numeric / rate
+}
+
+function toDisplayPrice(basePrice, currency) {
+  const converted = convertPrice(basePrice, currency)
+  if (!Number.isFinite(converted)) return ''
+  return String(Number(converted.toFixed(2)))
 }
 
 export default function AdminProducts() {
@@ -53,7 +66,16 @@ export default function AdminProducts() {
   useEffect(() => { load() }, [])
 
   const openNew = () => { setForm(EMPTY); setEditing(null); setModal(true) }
-  const openEdit = (p) => { setForm({ ...EMPTY, ...p, vendor_id: p.vendor_id || '' }); setEditing(p.id); setModal(true) }
+  const openEdit = (p) => {
+    setForm({
+      ...EMPTY,
+      ...p,
+      price: toDisplayPrice(p.price, currency),
+      vendor_id: p.vendor_id || '',
+    })
+    setEditing(p.id)
+    setModal(true)
+  }
 
   const handleImageUpload = async (event) => {
     const files = Array.from(event.target.files || [])
@@ -125,6 +147,7 @@ export default function AdminProducts() {
     e.preventDefault()
     setLoading(true)
     const payload = normalizeProductForm(form)
+    payload.price = Number(toBasePrice(form.price, currency).toFixed(2))
     try {
       if (editing) {
         await productsApi.update(editing, payload)
@@ -234,7 +257,7 @@ export default function AdminProducts() {
                     <option key={item.code} value={item.code}>{item.label}</option>
                   ))}
                 </select>
-                <p className="text-[11px] text-gray-400 mt-1">Price input is stored in USD base and previewed in the selected display currency.</p>
+                <p className="text-[11px] text-gray-400 mt-1">Price you type here is treated as {currencyConfig.code} and converted internally for storage.</p>
               </div>
               {[
                 { label: 'Title', field: 'title', type: 'text' },

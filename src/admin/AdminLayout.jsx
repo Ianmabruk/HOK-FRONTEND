@@ -5,6 +5,7 @@ import {
   FiMessageCircle, FiTruck, FiMenu, FiX, FiLogOut,
   FiFilm,
   FiImage,
+  FiSliders,
 } from 'react-icons/fi'
 import { useAuthStore } from '../store/authStore'
 
@@ -17,6 +18,7 @@ const NAV = [
   { label: 'Vendors', icon: FiTruck, to: '/admin/vendors' },
   { label: 'Before & After', icon: FiFilm, to: '/admin/before-after' },
   { label: 'Landing Images', icon: FiImage, to: '/admin/landing-images' },
+  { label: 'Settings', icon: FiSliders, to: '/admin/settings' },
 ]
 
 export default function AdminLayout() {

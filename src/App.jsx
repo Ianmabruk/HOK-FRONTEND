@@ -27,6 +27,7 @@ const AdminChats = lazy(() => import('./admin/Chats'))
 const AdminVendors = lazy(() => import('./admin/Vendors'))
 const AdminBeforeAfter = lazy(() => import('./admin/BeforeAfter'))
 const AdminLandingImages = lazy(() => import('./admin/LandingImages'))
+const AdminSettings = lazy(() => import('./admin/Settings'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
 function PageLoader() {
@@ -105,6 +106,7 @@ export default function App() {
           <Route path="vendors" element={<AdminVendors />} />
           <Route path="before-after" element={<AdminBeforeAfter />} />
           <Route path="landing-images" element={<AdminLandingImages />} />
+          <Route path="settings" element={<AdminSettings />} />
         </Route>
       </Routes>
     </Suspense>
