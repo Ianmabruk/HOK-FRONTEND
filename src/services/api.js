@@ -53,8 +53,11 @@ api.interceptors.response.use(
       err.userMessage = `Server error (${err.response.status}). Please try again.`
     }
 
-    // Force logout on any unauthorized response to clear stale persisted sessions.
-    if (err.response.status === 401) {
+    // Only force logout on auth endpoints — not on every 401 (e.g. accessing a
+    // protected resource while unauthenticated shouldn't wipe an active session).
+    const authEndpoints = ['/login', '/register', '/refresh']
+    const isAuthEndpoint = authEndpoints.some((p) => err.config?.url?.includes(p))
+    if (err.response.status === 401 && isAuthEndpoint) {
       useAuthStore.getState().logout()
     }
 
